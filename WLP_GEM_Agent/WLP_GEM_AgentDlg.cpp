@@ -1096,6 +1096,7 @@ void CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1(long lMsgId)
 	m_GEM.SendEventReport(3000);
 }
 /////////////////////////////////Control State
+<<<<<<< HEAD
 //HOST S1,F17 Request ON-LINE (RONL)
 void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 {
@@ -1111,11 +1112,18 @@ void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 	}
 
 	m_GEM.GoOnlineRemote();
+=======
+//HOST S1,F17
+void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 	m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용
 }
 //HOST S!,F17 ONLINE 허용했을때 발생하는 이벤트
 void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 {
+<<<<<<< HEAD
 //TO-DO ? Online Remote
 	//m_GEM.SetCurrentStatusValue(SVID_STATE, _T("3")); //SVID_STATE 2250 3: OnlineRemote
 	//m_GEM.SendEventReport(3000);
@@ -1138,6 +1146,18 @@ void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 
 	m_GEM.GoOffline();
 
+=======
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	m_GEM.SetCurrentStatusValue(SVID_STATE, _T("3")); //SVID_STATE 2250 3: OnlineRemote
+	m_GEM.SendEventReport(3000);
+}
+//
+//HOST S1,F15 - Online 일때...
+void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	m_GEM.GoOffline();
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 }
 
 //S2,F31
@@ -1212,12 +1232,20 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 		
 		//::CreateDirectory(EPPD, NULL);
 
+<<<<<<< HEAD
 		strFullpath = EPPD + strPPID; //EPPD - C:\\HITS\\RECIPE\\
 		
 		::CreateDirectory(strFullpath, NULL);
 
 		//m_GEM.GetFileBinaryItem(lMsgId, strFullpath);
 		m_GEM.GetFileBinaryItem(lMsgId, strFullpath + L"\\ModelInfo.ini");
+=======
+		strFullpath = EPPD + strPPID;
+		::CreateDirectory(EPPD, NULL);
+
+		m_GEM.GetFileBinaryItem(lMsgId, strFullpath);
+		//m_GEM.GetFileBinaryItem(lMsgId, strFullpath + L"\\ModelInfo.ini");
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 
 		m_GEM.GetListItemClose(lMsgId);
 
@@ -1233,7 +1261,11 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 		strPPID = m_GEM.GetAsciiItemString(lMsgId);
 		
 		//strFullpath = EPPD + strPPID;
+<<<<<<< HEAD
 		strFullpath = EPPD + strPPID + L"\\ModelInfo.ini"; //EPPD - C:\\HITS\\RECIPE\\ 
+=======
+		strFullpath = EPPD + strPPID + L"\\ModelInfo.ini";
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 
 		long lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F6
 	
@@ -1268,7 +1300,10 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	}
 
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 //S10F3 H->E Terminal Display, Single (VTN)	/S10F4 H<-E Terminal Display, Single Acknowledge (VTA) 
 void CWLP_GEM_AgentDlg::OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR strMsg, short nCode)
 {
@@ -1278,16 +1313,26 @@ void CWLP_GEM_AgentDlg::OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR s
 	CString	strSendPacket = L"";
 
 	strPacketBody = strMsg;
+<<<<<<< HEAD
 	//strPacketBody += L"|";
 			
 	nTotalPacketSize = strPacketBody.GetLength() + 8;
 	strSendPacket.Format(L"TDS%04d|%s|",nTotalPacketSize,strPacketBody);
+=======
+	strPacketBody += L"|";
+			
+	nTotalPacketSize = strPacketBody.GetLength() + 8;
+	strSendPacket.Format(L"TDS%04d|%s",nTotalPacketSize,strPacketBody);
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 
 	ProcGEM_ToEQ(strSendPacket);
 
 	m_GEM.AcceptTerminalMessage(lMsgId);
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1755458df52abbc530d3d36be63e8bda717d2182
 void CWLP_GEM_AgentDlg::OnBnClickedBtRecipe()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
