@@ -65,6 +65,18 @@ typedef enum
 //DVID - data variable
 #define	DVID_COLLECTION_DATA	3000
 #define DVID_TPWC				3100
+#define DVID_INSP_TIME			3110
+#define	DVID_INSP_EXEC_TIME		3120		
+#define DVID_YIELD				3130
+#define DVID_GOOD				3140					
+#define DVID_NO_DIE_NG			3150
+#define DVID_DICING_LINE_NG		3160
+#define DVID_PLATE_NG			3170 //도금		
+#define	DVID_ORIENT_NG			3180 //도금 방향	
+#define DVID_FM_NG				3190 //이물 
+#define DVID_CRACK_NG			3200
+#define DVID_PRE_NG				3210 //이전 공정		
+#define DVID_MULTI_NG			3220		
 
 //CEID
 #define CEID_BCR_READ				 1200

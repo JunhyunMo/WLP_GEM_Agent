@@ -27,6 +27,17 @@ void CListenSocket::OnAccept(int nErrorCode)
 		pClient->SetListenSocket(this);
 		m_ptrClientSocketList.AddTail(pClient);
 
+		((CWLP_GEM_AgentDlg*)AfxGetMainWnd())->m_bEqConnect = TRUE;
+
+		((CWLP_GEM_AgentDlg*)AfxGetMainWnd())->ProcGEM_ToEQ(L"ROF0008|"); //ON-LINE LOCAL
+		/*CString strSend = L"RON0008|";
+		if(m_ListenSocket.SendData(LOCAL_HOST,strSend) == TRUE)
+		{
+			strMsg.Format(L"[SND]%s - @ OnAccept",strSend);
+			AddLogTCP(strMsg);
+			GetLog()->Debug(strMsg.GetBuffer());
+		}*/
+
 		//CWLP_GEM_AgentDlg* pMain = (CWLP_GEM_AgentDlg*)AfxGetMainWnd();
 		//pMain->SendMessage(WM_UPDATE_UI_EVA_CONN, 0, 0);
 	}

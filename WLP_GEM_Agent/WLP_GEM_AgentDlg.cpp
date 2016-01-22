@@ -52,6 +52,7 @@ CWLP_GEM_AgentDlg::CWLP_GEM_AgentDlg(CWnd* pParent /*=NULL*/)
 	, m_strIniFilePath(L"")
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_bEqConnect = FALSE;
 }
 
 void CWLP_GEM_AgentDlg::DoDataExchange(CDataExchange* pDX)
@@ -117,9 +118,9 @@ BOOL CWLP_GEM_AgentDlg::OnInitDialog()
 	SetDlgItemText(IDC_EDIT_SVR_PORT,L"10101");
 
 	ShowWindow(SW_SHOWMINIMIZED);
-	GEMStart();
 	SvrStart();
-
+	GEMStart();
+	
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -253,18 +254,25 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 		//m_GEM.GoOnlineLocal();
 		//m_GEM.GoOnlineRemote();
 		m_GEM.SetHostMode(FALSE);
-		m_GEM.GoOffline();
+		m_GEM.GoOffline(); //default - ON-LINE LOCAL
 
+	
 		AddLogGEM(L"Started");
 		GetDlgItem(IDC_BT_GEM_START)->EnableWindow(FALSE);
 		return TRUE;
 	}
 	else
 	{
-		AddLogGEM(L"GEM start fail");
+		//AddLogGEM(L"GEM start fail");
 		return FALSE;
 	}
+//2016-01-08 박성우과장 문의. 
+	//m_GEM.GoOffline();  //offline 상태 event는 먼저 보내주어야 한다. - 이후 ezGEM driver 모든 처리 없으므로 S1,F15 
+	//S1, F17 받았을때 이전상태로 - Local 또는 Remote
+	//m_GEM.GoOnlineLocal(); //
+	//m_GEM.GoOnlineRemote(); // OnlineRemote, OnlineLocal 동일. Remote Command 처리 안하려면 ezGEM driver는 같이 태우므로, 따로 처리해야함(flag등)
 }
+
 
 void CWLP_GEM_AgentDlg::OnBnClickedBtGEMStop()
 {
@@ -846,6 +854,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 		{
 			strSend = L"STA0011|NG|";
 		}
+		m_GEM.GoOnlineLocal();
 	}
 	else if(strCommand == L"STP")
 	{
@@ -858,6 +867,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 		{
 			strSend = L"STP0011|NG|";
 		}
+		m_GEM.GoOffline();
 	}
 	else if(strCommand == L"ERS")
 	{
@@ -941,7 +951,7 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
 		m_GEM.SetCurrentStatusValue(SVID_SLOT_ID, strValue); //SLOT_ID - 2240
 	}
-	else if(strCEID == L"1900") //WAFER DCOL
+	else if(strCEID == L"1900") //WAFER DCOL //ERS0089|1900|NDZK4076400|2016-01-14 09:57:43/306523 ms/80.1  /7121/0/0/26/22/0/1/0/1720/|
 	{
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
@@ -949,8 +959,44 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		m_GEM.SetCurrentStatusValue(SVID_WAFER_ID, strValue); //WAFER_ID - 2230
 
 		nIdx = strSV.Find(L"|",nIdxPrev+1);
-		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
-		m_GEM.SetCurrentStatusValue(DVID_COLLECTION_DATA, strValue); //COLLECTION DATA - 3000
+		CString strResult = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
+
+		//AfxMessageBox(strResult);
+		AfxExtractSubString(strValue, strResult, 0, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_INSP_TIME, strValue); // 3110
+
+		AfxExtractSubString(strValue, strResult, 1, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_INSP_EXEC_TIME	, strValue); // 3120
+
+		AfxExtractSubString(strValue, strResult, 2, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_YIELD, strValue); // 3130
+
+		AfxExtractSubString(strValue, strResult, 3, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_GOOD, strValue); // 3140
+
+		AfxExtractSubString(strValue, strResult, 4, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_NO_DIE_NG, strValue); // 3150
+
+		AfxExtractSubString(strValue, strResult, 5, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_DICING_LINE_NG, strValue); // 3160
+
+		AfxExtractSubString(strValue, strResult, 6, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_PLATE_NG, strValue); // 3170
+
+		AfxExtractSubString(strValue, strResult, 7, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_ORIENT_NG, strValue); // 3180
+
+		AfxExtractSubString(strValue, strResult, 8, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_FM_NG, strValue); // 3190
+
+		AfxExtractSubString(strValue, strResult, 9, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_CRACK_NG, strValue); // 3200
+
+		AfxExtractSubString(strValue, strResult, 10, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_PRE_NG, strValue); // 3210
+		
+		AfxExtractSubString(strValue, strResult, 11, '/'); //
+		m_GEM.SetCurrentStatusValue(DVID_MULTI_NG, strValue); // 3220
 	}
 	else if(strCEID == L"2300") //DATA COLLECTION
 	{
@@ -1092,8 +1138,8 @@ void CWLP_GEM_AgentDlg::OnSecsMsgOutEzgemctrl1(short nStream, short nFunction, s
 void CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	m_GEM.SetCurrentStatusValue(SVID_STATE, L"1"); //SVID_STATE 2250  1: COMMUNICATING
-	m_GEM.SendEventReport(3000);
+	//m_GEM.SetCurrentStatusValue(SVID_STATE, L"1"); //SVID_STATE 2250  1: COMMUNICATING
+	//m_GEM.SendEventReport(3000);
 }
 /////////////////////////////////Control State
 //HOST S1,F17 Request ON-LINE (RONL)
@@ -1110,7 +1156,7 @@ void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 		GetLog()->Debug(strMsg.GetBuffer());
 	}
 
-	m_GEM.GoOnlineRemote();
+	m_GEM.GoOnlineRemote(); //Request Online Remote
 	m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용
 }
 //HOST S!,F17 ONLINE 허용했을때 발생하는 이벤트
@@ -1135,9 +1181,7 @@ void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 		AddLogTCP(strMsg);
 		GetLog()->Debug(strMsg.GetBuffer());
 	}
-
 	m_GEM.GoOffline();
-
 }
 
 //S2,F31

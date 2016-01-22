@@ -87,6 +87,7 @@ public:
 	BOOL	m_bJobInfoConfirm;
 	CStringList m_strListRecipe;
 	
+	BOOL	m_bEqConnect; //VISION Program 연결상태
 	CString  GetExecuteDirectory();
 	void	 AddSVID();
 	void	 AddCEID();
