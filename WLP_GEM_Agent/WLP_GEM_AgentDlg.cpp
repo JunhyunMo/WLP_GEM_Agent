@@ -1198,12 +1198,12 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 
 	// (ACK CODE
 	// 0 = ACKNOWLEDGE, COMMAND PERFORMED
-	// 1 = ACKNOWLEDGE, COMMAND WILL BE PERFORMED SOON
+	
 	// (NAK CODE
-	// -1 = CANNOT PERFORM NOW
-	// -2 = PARAMETER IS INVALID
-	// -3 = ALREADY IN DESIRED CONDITION
-	// -4 = UNABLE TO PERFORM, INTERNAL ERROR OCCURRED
+	// 1 = CANNOT PERFORM NOW
+	// 2 = PARAMETER IS INVALID
+	// 3 = ALREADY IN DESIRED CONDITION
+	// 4 = UNABLE TO PERFORM, INTERNAL ERROR OCCURRED
 	
 	CString strParamName, strParamValue;
 	CString strPacketBody = L""; //VISION 전송용 Packet Body;
@@ -1216,11 +1216,49 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 	{
 		strPacketBody.Format(L"%s|",strCommand);
 
-		for (int i = 0;i < nParamCount; i++) {
+		for (int i = 0;i < nParamCount; i++) 
+		{
 			strParamName = m_GEM.GetRemoteCommandParamName(lMsgId, strCommand, i);
 			strPacketBody += strParamName;
 			strPacketBody += L"|";
 			strParamValue = m_GEM.GetRemoteCommandParamValue(lMsgId, strCommand, i);
+
+			if(strParamName == L"PORT_ID")
+			{
+				if(CheckPort(strParamValue) == FALSE)
+				{
+					// REMOTE COMMAND NAK
+					//2016-01-25 DenyRemoteCommand 쓰지말것? NVIAsoft 문의시 이상한 대댭. NAK Code 는 (-) 아님. 매뉴얼 헷갈림. B 0x00 아니면 NAK
+					/* ACK
+					<S2F42
+					   <L[2/1]      
+						  <B[1/1] 0x00>
+						  <L[0/1]>
+					   >
+					>*/
+					/* NAK
+					<S2F42
+					   <L[2/1]      
+						  <B[1/1] 0x02>
+						  <L[0/1]>
+					   >
+					>*/
+					m_GEM.DenyRemoteCommand(lMsgId,strCommand,2); // PARAMETER IS INVALID
+					//m_GEM.ReplyRemoteCommand(lMsgId,strCommand,2);
+
+					return;
+				}
+			}
+			else if(strParamName == L"PPID")
+			{
+	
+				if(CheckPP(strParamValue) == FALSE)
+				{
+					m_GEM.DenyRemoteCommand(lMsgId,strCommand,2); // PARAMETER IS INVALID
+					return;
+				}
+			}
+//
 			strPacketBody += strParamValue;
 			strPacketBody += L"|";
 		}
@@ -1231,9 +1269,48 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 		ProcGEM_ToEQ(strSendPacket);
 
 		// REMOTE COMMAND 수락
-		short nCommack = 0x00; //OK..Agent 한계
+		short nCommack = 0x00; //OK..
 		m_GEM.AcceptRemoteCommand(lMsgId,strCommand,nCommack);
 	}
+}
+
+BOOL CWLP_GEM_AgentDlg::CheckPort(CString strParamValue)
+{
+//AfxMessageBox(strParamValue);
+	CString strCurPort = m_GEM.GetCurrentStatusValue(SVID_CASSETTE_ID);
+//AfxMessageBox(L"m_GEM.GetCurrentStatusValue(SVID_CASSETTE_ID)"+strCurPort);
+
+	if(strParamValue == strCurPort)
+	{
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+}
+
+BOOL CWLP_GEM_AgentDlg::CheckPP(CString strParamValue)
+{
+	//AfxMessageBox(strParamValue);
+
+	GetRecipeList(m_strListRecipe);
+
+	//CString strTemp;
+	
+	BOOL bRet = FALSE;
+
+	for(int i = 0; i < m_strListRecipe.GetCount(); i++)
+	{
+		if(strParamValue == m_strListRecipe.GetAt(m_strListRecipe.FindIndex(i)))
+		{
+			bRet = TRUE;
+			break;
+		}
+		
+	}
+
+	return bRet;
 }
 
 //S7,F5 Process Program Request (PPR) / S7,F6 Process Program Data (PPD) - Unformatted
@@ -1377,6 +1454,7 @@ void CWLP_GEM_AgentDlg::GetRecipeList(CStringList &strList)
 		}
 	}
 }
+
 
 /*MSDN
 void Recurse(LPCTSTR pstr)

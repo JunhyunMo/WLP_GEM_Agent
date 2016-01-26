@@ -111,6 +111,9 @@ public:
 	void	SendARS(CString strPacketBody);
 
 	void    GetRecipeList(CStringList &strList);
+
+	BOOL	CheckPort(CString strParamValue);
+	BOOL	CheckPP(CString strParamValue);
 	//void	RemoveSV(int CEID);
 
 	DECLARE_EVENTSINK_MAP()
