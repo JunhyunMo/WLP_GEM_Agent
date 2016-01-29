@@ -76,7 +76,8 @@ typedef enum
 #define DVID_FM_NG				3190 //이물 
 #define DVID_CRACK_NG			3200
 #define DVID_PRE_NG				3210 //이전 공정		
-#define DVID_MULTI_NG			3220		
+#define DVID_MULTI_NG			3220
+#define DVID_MAP_DATA			3230
 
 //CEID
 #define CEID_BCR_READ				 1200

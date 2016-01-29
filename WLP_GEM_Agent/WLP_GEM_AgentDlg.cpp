@@ -119,7 +119,6 @@ BOOL CWLP_GEM_AgentDlg::OnInitDialog()
 
 	ShowWindow(SW_SHOWMINIMIZED);
 	SvrStart();
-	GEMStart();
 	
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -241,7 +240,7 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	m_GEM.DisableAutoReply(7, 5);   //S7,F5 Process Program Request (PPR)
 	m_GEM.DisableAutoReply(7, 19);	///S7, F19 Current EPPD Request
 	
-	//TO-DO Check!
+	//TO-Check!
 	/*m_GEM.DisableAutoReply(7, 17);	
 	m_GEM.DisableAutoReply(7, 23);
 	m_GEM.DisableAutoReply(7, 25);*/
@@ -250,13 +249,9 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	
 	if( m_GEM.Start() >= 0 )
 	{
-		//m_GEM.EnableCommunication();
-		//m_GEM.GoOnlineLocal();
-		//m_GEM.GoOnlineRemote();
+		m_GEM.EnableCommunication();
 		m_GEM.SetHostMode(FALSE);
-		m_GEM.GoOffline(); //default - ON-LINE LOCAL
 
-	
 		AddLogGEM(L"Started");
 		GetDlgItem(IDC_BT_GEM_START)->EnableWindow(FALSE);
 		return TRUE;
@@ -850,16 +845,17 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 		{
 			strSend = L"STA0011|OK|";
 		}
-		else
+		/*else
 		{
 			strSend = L"STA0011|NG|";
-		}
-		m_GEM.GoOnlineLocal();
+		}*/
+		//m_GEM.GoOnlineLocal();
 	}
 	else if(strCommand == L"STP")
 	{
 		BOOL bRet = GEMStop();
-		if( bRet == TRUE )
+		PostQuitMessage(0);
+		/*if( bRet == TRUE )
 		{
 			strSend = L"STP0011|OK|";
 		}
@@ -867,7 +863,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 		{
 			strSend = L"STP0011|NG|";
 		}
-		m_GEM.GoOffline();
+		m_GEM.GoOffline();*/
 	}
 	else if(strCommand == L"ERS")
 	{
@@ -1036,6 +1032,17 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		strValue = strSV.Left(nIdx);
 		m_GEM.SetCurrentStatusValue(SVID_STATE, strValue); //STATE -  2250
 	}
+	else if(strCEID == L"1910") //MAP DCOL
+	{
+		nIdx = strSV.Find(L"|");
+		strValue = strSV.Left(nIdx);
+		nIdxPrev = nIdx;
+		m_GEM.SetCurrentStatusValue(SVID_WAFER_ID, strValue); //WAFER_ID - 2230
+
+		nIdx = strSV.Find(L"|",nIdxPrev+1);
+		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
+		m_GEM.SetCurrentStatusValue(DVID_MAP_DATA, strValue); //MAP_DATA - 3230
+	}
 	else
 	{
 		return -1;
@@ -1053,13 +1060,18 @@ void CWLP_GEM_AgentDlg::SendARS(CString strPacketBody)
 	;
 }
 
-void CWLP_GEM_AgentDlg::ProcGEM_ToEQ(CString strSendPacket)
+BOOL CWLP_GEM_AgentDlg::ProcGEM_ToEQ(CString strSendPacket)
 {
-	m_ListenSocket.SendData(LOCAL_HOST,strSendPacket);
-	CString strMsg;
-	strMsg.Format(L"[SND]%s",strSendPacket);
-	AddLogTCP(strMsg);
-	GetLog()->Debug(strMsg.GetBuffer());
+	BOOL bRet = FALSE;
+	bRet = m_ListenSocket.SendData(LOCAL_HOST,strSendPacket);
+	if(bRet == TRUE)
+	{
+		CString strMsg;
+		strMsg.Format(L"[SND]%s",strSendPacket);
+		AddLogTCP(strMsg);
+		GetLog()->Debug(strMsg.GetBuffer());
+	}
+	return bRet;
 }
 
 //해야하나? Trace Data 하게 되면, SV유지해야하지 않나? 확인 要 
@@ -1102,12 +1114,32 @@ void CWLP_GEM_AgentDlg::OnConnectedEzgemctrl1()
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	AddLogGEM(L"Connected.");
+
+	CString strPacket, strMsg;
+	strPacket = L"ROF0008|";
+	
+	if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
+	{
+		strMsg.Format(L"[SND]%s",strPacket);
+		AddLogTCP(strMsg);
+		GetLog()->Debug(strMsg.GetBuffer());
+	}
 }
 
 void CWLP_GEM_AgentDlg::OnDisconnectedEzgemctrl1()
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	AddLogGEM(L"Disonnected.");
+
+	CString strPacket, strMsg;
+	strPacket = L"OFF0008|";
+	
+	if(ProcGEM_ToEQ(strPacket) == TRUE) //OFF-LINE
+	{
+		strMsg.Format(L"[SND]%s",strPacket);
+		AddLogTCP(strMsg);
+		GetLog()->Debug(strMsg.GetBuffer());
+	}
 }
 
 void CWLP_GEM_AgentDlg::OnSecsMsgInEzgemctrl1(short nStream, short nFunction, short nWbit, long lSysByte)
@@ -1140,48 +1172,47 @@ void CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1(long lMsgId)
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	//m_GEM.SetCurrentStatusValue(SVID_STATE, L"1"); //SVID_STATE 2250  1: COMMUNICATING
 	//m_GEM.SendEventReport(3000);
+
 }
 /////////////////////////////////Control State
 //HOST S1,F17 Request ON-LINE (RONL)
 void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	CString strMsg;
-	CString	strSendPacket = L"RON0008|"; //VISION 전송용 Packet Body;
-
-	if(m_ListenSocket.SendData(LOCAL_HOST,strSendPacket) == TRUE)
-	{
-		strMsg.Format(L"[SND]%s",strSendPacket);
-		AddLogTCP(strMsg);
-		GetLog()->Debug(strMsg.GetBuffer());
+	
+	if(m_bEqConnect == TRUE)
+	{	
+		m_GEM.GoOnlineRemote(); //Request Online Remote
+		m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	
 	}
-
-	m_GEM.GoOnlineRemote(); //Request Online Remote
-	m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용
+	//m_GEM.GoOnlineRemote(); //Request Online Remote
+	//m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용
 }
 //HOST S!,F17 ONLINE 허용했을때 발생하는 이벤트
 void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 {
-//TO-DO ? Online Remote
-	//m_GEM.SetCurrentStatusValue(SVID_STATE, _T("3")); //SVID_STATE 2250 3: OnlineRemote
-	//m_GEM.SendEventReport(3000);
+	CString strPacket, strMsg;
+	strPacket = L"RON0008|";
+	
+	if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE Remote
+	{
+		strMsg.Format(L"[SND]%s",strPacket);
+		AddLogTCP(strMsg);
+		GetLog()->Debug(strMsg.GetBuffer());
+	}
 }
 //
 //S1, F15  Request OFF-LINE (ROFL)	- Online 일때...
 void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	//AfxMessageBox(L"OnOfflineRequestEzgemctrl1");
-	CString strMsg;
-	CString	strSendPacket = L"ROF0008|"; //VISION 전송용 Packet Body;
-
-	if(m_ListenSocket.SendData(LOCAL_HOST,strSendPacket) == TRUE)
+	if(m_bEqConnect == TRUE)
 	{
-		strMsg.Format(L"[SND]%s",strSendPacket);
-		AddLogTCP(strMsg);
-		GetLog()->Debug(strMsg.GetBuffer());
+		if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
+		{
+			m_GEM.GoOffline();
+		}
 	}
-	m_GEM.GoOffline();
 }
 
 //S2,F31
@@ -1421,7 +1452,7 @@ void CWLP_GEM_AgentDlg::OnBnClickedBtRecipe()
 		strTemp += m_strListRecipe.GetAt(m_strListRecipe.FindIndex(i));
 		strTemp += L"\n";
 	}
-	AfxMessageBox(strTemp);
+	MessageBox(strTemp, L"Recipe List", MB_OK|MB_ICONINFORMATION);
 }
 
 void CWLP_GEM_AgentDlg::GetRecipeList(CStringList &strList)

@@ -105,7 +105,7 @@ public:
 	/*void	ProcGEM_FromEQ(CString strIP, CString strRcv);
 	void	ProcGEM_FromEAP(CString strIP, CString strRcv);*/
 	void	ProcGEM_FromEQ(CString strRcv);
-	void	ProcGEM_ToEQ(CString strSnd);
+	BOOL	ProcGEM_ToEQ(CString strSnd);
 
 	int 	SendERS(CString strPacketBody);
 	void	SendARS(CString strPacketBody);
