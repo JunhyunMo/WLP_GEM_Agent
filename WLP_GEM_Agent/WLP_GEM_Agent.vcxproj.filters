@@ -104,5 +104,14 @@
     <Image Include="res\WLP_GEM_Agent.ico">
       <Filter>리소스 파일</Filter>
     </Image>
+    <Image Include="res\icon1.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="res\connect.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="res\NETWORK.ICO">
+      <Filter>리소스 파일</Filter>
+    </Image>
   </ItemGroup>
 </Project>

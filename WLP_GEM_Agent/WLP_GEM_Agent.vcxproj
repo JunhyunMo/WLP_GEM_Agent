@@ -141,6 +141,9 @@
     <None Include="res\WLP_GEM_Agent.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\connect.ico" />
+    <Image Include="res\icon1.ico" />
+    <Image Include="res\NETWORK.ICO" />
     <Image Include="res\WLP_GEM_Agent.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
