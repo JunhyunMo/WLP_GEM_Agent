@@ -87,7 +87,7 @@ public:
 	BOOL	m_bJobInfoConfirm;
 	CStringList m_strListRecipe;
 	
-	BOOL	m_bEqConnect; //VISION Program 연결상태
+	BOOL	 m_bEqConnect; //VISION Program 연결상태
 	CString  GetExecuteDirectory();
 	void	 AddSVID();
 	void	 AddCEID();
@@ -114,6 +114,8 @@ public:
 
 	BOOL	CheckPort(CString strParamValue);
 	BOOL	CheckPP(CString strParamValue);
+
+	void	SelfShutDown();
 	//void	RemoveSV(int CEID);
 
 	DECLARE_EVENTSINK_MAP()
@@ -129,4 +131,5 @@ public:
 	void OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strCommand, short nParamCount); //S2,F41
 	void OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR strMsg, short nCode); //S10,F3
 	void OnOfflineRequestEzgemctrl1(long lMsgId);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

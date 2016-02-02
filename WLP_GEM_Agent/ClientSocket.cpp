@@ -34,6 +34,7 @@ void CClientSocket::OnClose(int nErrorCode)
 	pServerSocket->CloseClientSocket(this);
 
 	((CWLP_GEM_AgentDlg*)AfxGetMainWnd())->m_bEqConnect = FALSE;
+	((CWLP_GEM_AgentDlg*)AfxGetMainWnd())->SelfShutDown();
 }
 
 void CClientSocket::OnReceive(int nErrorCode)

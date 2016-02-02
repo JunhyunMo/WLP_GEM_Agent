@@ -72,6 +72,7 @@ BEGIN_MESSAGE_MAP(CWLP_GEM_AgentDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_SVR_STOP, &CWLP_GEM_AgentDlg::OnBnClickedBtSvrStop)
 	ON_BN_CLICKED(IDC_BT_SVR_START, &CWLP_GEM_AgentDlg::OnBnClickedBtSvrStart)
 	ON_BN_CLICKED(IDC_BT_RECIPE, &CWLP_GEM_AgentDlg::OnBnClickedBtRecipe)
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 // CWLP_GEM_AgentDlg 메시지 처리기
@@ -854,7 +855,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	else if(strCommand == L"STP")
 	{
 		BOOL bRet = GEMStop();
-		PostQuitMessage(0);
+		PostQuitMessage(WM_QUIT);
 		/*if( bRet == TRUE )
 		{
 			strSend = L"STP0011|OK|";
@@ -1486,6 +1487,28 @@ void CWLP_GEM_AgentDlg::GetRecipeList(CStringList &strList)
 	}
 }
 
+void  CWLP_GEM_AgentDlg::SelfShutDown()
+{
+	SetTimer(IDD,1000*5,NULL);
+}
+
+void CWLP_GEM_AgentDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	if(nIDEvent == IDD)
+	{
+		if(m_bEqConnect == TRUE)
+		{
+			KillTimer(IDD);
+		}
+		else if(m_bEqConnect == FALSE)
+		{
+			PostQuitMessage(WM_QUIT);
+		}
+	}
+
+	CDialogEx::OnTimer(nIDEvent);
+}
 
 /*MSDN
 void Recurse(LPCTSTR pstr)
@@ -1527,3 +1550,5 @@ void PrintDirs()
    Recurse(_T("C:"));
 }
 */
+
+
