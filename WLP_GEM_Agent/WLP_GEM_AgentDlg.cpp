@@ -243,6 +243,8 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	m_GEM.DisableAutoReply(7, 5);   //S7,F5 Process Program Request (PPR)
 	m_GEM.DisableAutoReply(7, 19);	///S7, F19 Current EPPD Request
 	
+	//2016-02-11
+	m_GEM.DisableAutoReply(1,15);
 	m_GEM.DisableAutoReply(1,17);
 	//TO-Check!
 	/*m_GEM.DisableAutoReply(7, 17);	
@@ -916,6 +918,8 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 	int nIdx = -1;
 	int nIdxPrev = -1;
 
+	//recv packet ex) ERS0017|1200|2|2|
+
 	if(strCEID == L"1200" || strCEID == L"1400" || strCEID == L"1600" || strCEID == L"2600") //BCR_READ, LOAD_COMPLETE, CASSETTE_START, UNLOAD_COMPLETE
 	{
 		nIdx = strSV.Find(L"|");
@@ -1216,15 +1220,19 @@ void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	if(m_bEqConnect == TRUE)
-	{
-		if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
-		{
-			//m_GEM.GoOffline(); 
-			//2016-02-11 ERS는 올림. RCMD만 처리안함.
-			m_bOnlineRemote = FALSE;
-		}
-	}
+	//if(m_bEqConnect == TRUE)
+	//{
+	//	if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
+	//	{
+	//		//m_GEM.GoOffline(); 
+	//		//2016-02-11 ERS는 올림. RCMD만 처리안함.
+	//		m_GEM.GoOnlineLocal(); 
+	//		m_bOnlineRemote = FALSE;
+	//	}
+	//}
+	
+	//2016-02-11 - m_GEM.DisableAutoReply(1,15);
+	//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
 }
 
 //S2,F31
@@ -1365,11 +1373,32 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	short nStream, nFunction, nWbit;//, nCommack;
+	long lReplyMsgId = 0;
+	short nACK;
+
 	long lLength;
 	CString strPPID;
 
 	m_GEM.GetMsgInfo(lMsgId, &nStream, &nFunction, &nWbit, &lLength);
 
+	//S1, F15  Request OFF-LINE (ROFL)
+	if(nStream == 1 && nFunction == 15 && nWbit == 1)
+	{ 
+		if(m_bEqConnect == TRUE)
+		{
+			if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
+			{
+				//m_GEM.GoOffline(); 
+				//2016-02-11 ERS는 올림. RCMD만 처리안함.
+				m_GEM.GoOnlineLocal();
+				m_bOnlineRemote = FALSE;
+				lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S1F16
+				nACK = 0x00;
+				m_GEM.AddBinaryItem(lReplyMsgId, &nACK, 1);
+				m_GEM.SendMsg(lReplyMsgId);
+			}
+		}
+	}
 	//HOST S1,F17 Request ON-LINE (RONL)
 	if(nStream == 1 && nFunction == 17 && nWbit == 1)
 	{
@@ -1387,7 +1416,7 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	if(nStream == 7 && nFunction == 3 && nWbit == 1)
 	{
 		CString strFullpath = _T("");
-		short nACK=0x00;
+		nACK = 0x00;
 		m_GEM.GetListItemOpen(lMsgId);
 		strPPID = m_GEM.GetAsciiItemString(lMsgId);
 		
@@ -1402,7 +1431,7 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 
 		m_GEM.GetListItemClose(lMsgId);
 
-		long lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F4
+		lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F4
 		m_GEM.AddBinaryItem(lReplyMsgId, &nACK, 1);
 		m_GEM.SendMsg(lReplyMsgId);
 	}
@@ -1416,7 +1445,7 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 		//strFullpath = EPPD + strPPID;
 		strFullpath = EPPD + strPPID + L"\\ModelInfo.ini"; //EPPD - C:\\HITS\\RECIPE\\ 
 
-		long lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F6
+		lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F6
 	
 		m_GEM.OpenListItem(lReplyMsgId);
 	
@@ -1435,7 +1464,7 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	{
 		GetRecipeList(m_strListRecipe);
 		CString strRecipe;
-		long lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F20
+		lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S7F20
 		m_GEM.OpenListItem(lReplyMsgId);
 	
 		for(int i = 0; i < m_strListRecipe.GetCount(); i++)
