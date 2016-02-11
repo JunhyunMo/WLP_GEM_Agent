@@ -53,6 +53,8 @@ CWLP_GEM_AgentDlg::CWLP_GEM_AgentDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_bEqConnect = FALSE;
+
+	m_bOnlineRemote = FALSE;
 }
 
 void CWLP_GEM_AgentDlg::DoDataExchange(CDataExchange* pDX)
@@ -241,6 +243,7 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	m_GEM.DisableAutoReply(7, 5);   //S7,F5 Process Program Request (PPR)
 	m_GEM.DisableAutoReply(7, 19);	///S7, F19 Current EPPD Request
 	
+	m_GEM.DisableAutoReply(1,17);
 	//TO-Check!
 	/*m_GEM.DisableAutoReply(7, 17);	
 	m_GEM.DisableAutoReply(7, 23);
@@ -267,6 +270,10 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	//S1, F17 받았을때 이전상태로 - Local 또는 Remote
 	//m_GEM.GoOnlineLocal(); //
 	//m_GEM.GoOnlineRemote(); // OnlineRemote, OnlineLocal 동일. Remote Command 처리 안하려면 ezGEM driver는 같이 태우므로, 따로 처리해야함(flag등)
+
+//2016-02-04 드림시스 도상호 대리 추가 개발 요구사항
+	//Mode가 Online Local일 때 Event를 EAP로 동일하게 올려 주는 부분 개발 필요(EAP에서 명령 내리지 않고 동작하고, Event만 올리는 부분)
+
 }
 
 
@@ -850,7 +857,8 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 		{
 			strSend = L"STA0011|NG|";
 		}*/
-		//m_GEM.GoOnlineLocal();
+		m_GEM.GoOnlineRemote(); //2016-02-11 ERS만! RCMD 처리안함. 실질적으로 OnlineLocal...
+		m_bOnlineRemote = FALSE;
 	}
 	else if(strCommand == L"STP")
 	{
@@ -1121,6 +1129,7 @@ void CWLP_GEM_AgentDlg::OnConnectedEzgemctrl1()
 	
 	if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
 	{
+		m_bOnlineRemote = FALSE;
 		strMsg.Format(L"[SND]%s",strPacket);
 		AddLogTCP(strMsg);
 		GetLog()->Debug(strMsg.GetBuffer());
@@ -1134,6 +1143,8 @@ void CWLP_GEM_AgentDlg::OnDisconnectedEzgemctrl1()
 
 	CString strPacket, strMsg;
 	strPacket = L"OFF0008|";
+
+	m_bOnlineRemote = FALSE;
 	
 	if(ProcGEM_ToEQ(strPacket) == TRUE) //OFF-LINE
 	{
@@ -1179,27 +1190,25 @@ void CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1(long lMsgId)
 //HOST S1,F17 Request ON-LINE (RONL)
 void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 {
-	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	
-	if(m_bEqConnect == TRUE)
-	{	
-		m_GEM.GoOnlineRemote(); //Request Online Remote
-		m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	
-	}
-	//m_GEM.GoOnlineRemote(); //Request Online Remote
-	//m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용
+	;
+	//2016-02-11 - m_GEM.DisableAutoReply(1,17);
+	//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
 }
 //HOST S!,F17 ONLINE 허용했을때 발생하는 이벤트
+//2016-02-11 m_GEM.GoOnlineRemote() 에서도 발생.
 void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 {
-	CString strPacket, strMsg;
-	strPacket = L"RON0008|";
-	
-	if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE Remote
+	if(m_bOnlineRemote == TRUE) //2016-02-11 HOST로부터 HOST S1,F17 Request ON-LINE (RONL) 받았을 때만...
 	{
-		strMsg.Format(L"[SND]%s",strPacket);
-		AddLogTCP(strMsg);
-		GetLog()->Debug(strMsg.GetBuffer());
+		CString strPacket, strMsg;
+		strPacket = L"RON0008|";
+	
+		if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE Remote
+		{
+			strMsg.Format(L"[SND]%s",strPacket);
+			AddLogTCP(strMsg);
+			GetLog()->Debug(strMsg.GetBuffer());
+		}
 	}
 }
 //
@@ -1211,7 +1220,9 @@ void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 	{
 		if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
 		{
-			m_GEM.GoOffline();
+			//m_GEM.GoOffline(); 
+			//2016-02-11 ERS는 올림. RCMD만 처리안함.
+			m_bOnlineRemote = FALSE;
 		}
 	}
 }
@@ -1226,8 +1237,6 @@ void CWLP_GEM_AgentDlg::OnDateTimeSetRequestEzgemctrl1(long lMsgId, LPCTSTR strN
 //S2,F41
 void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strCommand, short nParamCount)
 {
-	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-
 	// (ACK CODE
 	// 0 = ACKNOWLEDGE, COMMAND PERFORMED
 	
@@ -1236,7 +1245,13 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 	// 2 = PARAMETER IS INVALID
 	// 3 = ALREADY IN DESIRED CONDITION
 	// 4 = UNABLE TO PERFORM, INTERNAL ERROR OCCURRED
-	
+	short nNAK = 0x01;
+	if(m_bOnlineRemote == FALSE) //OnlineLocal 일때 처리안함.
+	{
+		m_GEM.DenyRemoteCommand(lMsgId,strCommand,nNAK);
+		return;
+	}
+
 	CString strParamName, strParamValue;
 	CString strPacketBody = L""; //VISION 전송용 Packet Body;
 	int nTotalPacketSize = 0;
@@ -1354,6 +1369,19 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	CString strPPID;
 
 	m_GEM.GetMsgInfo(lMsgId, &nStream, &nFunction, &nWbit, &lLength);
+
+	//HOST S1,F17 Request ON-LINE (RONL)
+	if(nStream == 1 && nFunction == 17 && nWbit == 1)
+	{
+		m_bOnlineRemote = TRUE;
+
+		if(m_bEqConnect == TRUE)
+		{	
+			m_GEM.GoOnlineRemote(); //Request Online Remote
+			m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	
+		}
+
+	}
 
 	//S7,F3 Process Program Send (PPS)  / S7,F4 Process Program Acknowledge (PPA) - Unformatted
 	if(nStream == 7 && nFunction == 3 && nWbit == 1)

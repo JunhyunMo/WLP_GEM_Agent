@@ -66,5 +66,4 @@ void CClientSocket::OnReceive(int nErrorCode)
 	}
 	
 	CSocket::OnReceive(nErrorCode);
-	
 }
