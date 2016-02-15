@@ -801,6 +801,7 @@ BOOL CWLP_GEM_AgentDlg::LoadGemConfig()
 	//				Remote Command  추가
 	m_GEM.AddRemoteCommand(L"PP-SELECT");
 	m_GEM.AddRemoteCommand(L"START");
+	m_GEM.AddRemoteCommand(L"UNLOAD");
 
 	m_GEM.SetEstablishCommRetryTimer(m_nCommReqeustTimeout);
 
@@ -1267,7 +1268,7 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 
 	//AfxMessageBox(strCommand);
 	//if(strCommand == _T("PP-SELECT") || strCommand == _T("START"))
-	if(wcscmp(strCommand,_T("PP-SELECT")) == 0 || wcscmp(strCommand,_T("START")) == 0)
+	if(wcscmp(strCommand,_T("PP-SELECT")) == 0 || wcscmp(strCommand,_T("START")) == 0 || wcscmp(strCommand,_T("UNLOAD")) == 0)
 	{
 		strPacketBody.Format(L"%s|",strCommand);
 
