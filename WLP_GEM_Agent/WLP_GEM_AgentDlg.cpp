@@ -1240,6 +1240,21 @@ void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 void CWLP_GEM_AgentDlg::OnDateTimeSetRequestEzgemctrl1(long lMsgId, LPCTSTR strNewDateTime)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+//TO-TEST
+	SYSTEMTIME st;
+	ZeroMemory(&st,sizeof(st));
+
+	CString strDateTime = strNewDateTime;
+
+	st.wYear = _wtoi(strDateTime.Left(4));
+	st.wMonth = _wtoi(strDateTime.Mid(2,2));
+	st.wDay = _wtoi(strDateTime.Mid(4,2));
+	st.wHour = _wtoi(strDateTime.Mid(6,2));
+	st.wMinute =_wtoi(strDateTime.Mid(8,2));
+	st.wSecond = _wtoi(strDateTime.Mid(10,2));
+
+	SetLocalTime(&st);
+
 	m_GEM.AcceptAndSetNewDateTime(lMsgId,strNewDateTime);
 }
 
@@ -1266,8 +1281,6 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 	int nTotalPacketSize = 0;
 	CString	strSendPacket = L"";
 
-	//AfxMessageBox(strCommand);
-	//if(strCommand == _T("PP-SELECT") || strCommand == _T("START"))
 	if(wcscmp(strCommand,_T("PP-SELECT")) == 0 || wcscmp(strCommand,_T("START")) == 0 || wcscmp(strCommand,_T("UNLOAD")) == 0)
 	{
 		strPacketBody.Format(L"%s|",strCommand);
@@ -1332,9 +1345,7 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 
 BOOL CWLP_GEM_AgentDlg::CheckPort(CString strParamValue)
 {
-//AfxMessageBox(strParamValue);
-	CString strCurPort = m_GEM.GetCurrentStatusValue(SVID_CASSETTE_ID);
-//AfxMessageBox(L"m_GEM.GetCurrentStatusValue(SVID_CASSETTE_ID)"+strCurPort);
+	CString strCurPort = m_GEM.GetCurrentStatusValue(SVID_PORT_ID);
 
 	if(strParamValue == strCurPort)
 	{
@@ -1348,12 +1359,8 @@ BOOL CWLP_GEM_AgentDlg::CheckPort(CString strParamValue)
 
 BOOL CWLP_GEM_AgentDlg::CheckPP(CString strParamValue)
 {
-	//AfxMessageBox(strParamValue);
-
 	GetRecipeList(m_strListRecipe);
 
-	//CString strTemp;
-	
 	BOOL bRet = FALSE;
 
 	for(int i = 0; i < m_strListRecipe.GetCount(); i++)
@@ -1363,7 +1370,6 @@ BOOL CWLP_GEM_AgentDlg::CheckPP(CString strParamValue)
 			bRet = TRUE;
 			break;
 		}
-		
 	}
 
 	return bRet;
