@@ -971,42 +971,42 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		nIdx = strSV.Find(L"|",nIdxPrev+1);
 		CString strResult = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
 
-		//AfxMessageBox(strResult);
 		AfxExtractSubString(strValue, strResult, 0, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_INSP_TIME, strValue); // 3110
+		m_GEM.SetCurrentStatusValue(DVID_INSP_TIME, strValue); // 3110 - 검사시간
 
 		AfxExtractSubString(strValue, strResult, 1, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_INSP_EXEC_TIME	, strValue); // 3120
+		m_GEM.SetCurrentStatusValue(DVID_INSP_EXEC_TIME	, strValue); // 3120 - 검사소요시간
 
 		AfxExtractSubString(strValue, strResult, 2, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_YIELD, strValue); // 3130
+		m_GEM.SetCurrentStatusValue(DVID_YIELD, strValue); // 3130 - 수율
 
 		AfxExtractSubString(strValue, strResult, 3, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_GOOD, strValue); // 3140
+		m_GEM.SetCurrentStatusValue(DVID_GOOD, strValue); // 3140 - GOOD
 
 		AfxExtractSubString(strValue, strResult, 4, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_NO_DIE_NG, strValue); // 3150
+		m_GEM.SetCurrentStatusValue(DVID_CHIPOUT_NG, strValue); // 3150 - Chipout(칩없음) - 91//2016-02-19 현업 NG명,코드(9x)
 
 		AfxExtractSubString(strValue, strResult, 5, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_DICING_LINE_NG, strValue); // 3160
+		m_GEM.SetCurrentStatusValue(DVID_DICING_ALINE_NG, strValue); // 3160 - Dicing Align(얼라인) - 92
 
 		AfxExtractSubString(strValue, strResult, 6, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_PLATE_NG, strValue); // 3170
+		m_GEM.SetCurrentStatusValue(DVID_CHIPPING_NG, strValue); // 3170 - 칩핑 - 93
 
 		AfxExtractSubString(strValue, strResult, 7, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_ORIENT_NG, strValue); // 3180
+		m_GEM.SetCurrentStatusValue(DVID_PAD_NG, strValue); // 3180 - Pad(도금형상불량) - 94
 
 		AfxExtractSubString(strValue, strResult, 8, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_FM_NG, strValue); // 3190
+		m_GEM.SetCurrentStatusValue(DVID_FM_NG, strValue); // 3190 - F/M(이물) - 95
 
 		AfxExtractSubString(strValue, strResult, 9, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_CRACK_NG, strValue); // 3200
+		m_GEM.SetCurrentStatusValue(DVID_CRACK_NG, strValue); // 3200 - Crack(크랙) - 96
 
 		AfxExtractSubString(strValue, strResult, 10, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_PRE_NG, strValue); // 3210
-		
+		m_GEM.SetCurrentStatusValue(DVID_PRE_NG, strValue); // 3210 - P/N - 이전 공정 - 97
+	
 		AfxExtractSubString(strValue, strResult, 11, '/'); //
-		m_GEM.SetCurrentStatusValue(DVID_MULTI_NG, strValue); // 3220
+		m_GEM.SetCurrentStatusValue(DVID_MULTI_NG, strValue); // 3220 - Multiple NG - - 98
+
 	}
 	else if(strCEID == L"2300") //DATA COLLECTION
 	{

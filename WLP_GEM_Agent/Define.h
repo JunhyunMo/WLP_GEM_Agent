@@ -68,15 +68,15 @@ typedef enum
 #define DVID_INSP_TIME			3110
 #define	DVID_INSP_EXEC_TIME		3120		
 #define DVID_YIELD				3130
-#define DVID_GOOD				3140					
-#define DVID_NO_DIE_NG			3150
-#define DVID_DICING_LINE_NG		3160
-#define DVID_PLATE_NG			3170 //도금		
-#define	DVID_ORIENT_NG			3180 //도금 방향	
-#define DVID_FM_NG				3190 //이물 
-#define DVID_CRACK_NG			3200
-#define DVID_PRE_NG				3210 //이전 공정		
-#define DVID_MULTI_NG			3220
+#define DVID_GOOD				3140 //GOOD					
+#define DVID_CHIPOUT_NG			3150 //Chipout(칩없음) - 91//2016-02-19 현업 NG명,코드(9x)
+#define DVID_DICING_ALINE_NG	3160 //Dicing Align(얼라인) - 92
+#define DVID_CHIPPING_NG		3170 //칩핑 - 93	
+#define	DVID_PAD_NG			    3180 //Pad(도금형상불량) - 94	
+#define DVID_FM_NG				3190 //F/M(이물) - 95
+#define DVID_CRACK_NG			3200 //Crack(크랙) - 96
+#define DVID_PRE_NG				3210 //P/N - 이전 공정 - 97		
+#define DVID_MULTI_NG			3220 //Multiple NG - - 98
 #define DVID_MAP_DATA			3230
 
 //CEID
