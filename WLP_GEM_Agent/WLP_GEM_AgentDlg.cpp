@@ -560,13 +560,18 @@ void CWLP_GEM_AgentDlg::AddECID() //Equipment Constant ID
 
 void CWLP_GEM_AgentDlg::AddALID() //Alarm ID
 {
+//ALID.txt
+//1	Alarm1	1
+//2	Alarm2	2
+
 	char *ptr, buff[0xFF], *nextptr, *currentptr;
 	long ALID = 0;
-	CString strALID=L"";
-
-	// 파일의 위치는 받아와서 진행이 가능하도록 수정.
+	CString strDesc = L"";
+	CString strCode = L"";
 	FILE *fp;
-	fopen_s(&fp,(CStringA)m_strALIDFilePath,"r+t"); // !주의 "GEM\\ALID.TXT"
+	//bool b_testSVID;
+
+	fopen_s(&fp, (CStringA)m_strALIDFilePath,"r+t"); // !주의	//"GEM\\SVID.TXT"
 	if (fp == NULL)
 	{
 		AfxMessageBox(L"GEM/ALID.TXT 파일을 찾을수 없습니다.");
@@ -575,23 +580,56 @@ void CWLP_GEM_AgentDlg::AddALID() //Alarm ID
 
 	while ((ptr = fgets(buff, 0xFF, fp)) != NULL)
 	{
-		//ptr = strtok_s(ptr, "\r\n", &nextptr);
-		//if (*ptr == '#' || ptr == NULL) continue;
+		ALID = 0;
+		//currentptr = strtok_s(ptr, "\r\n", &nextptr);
+		//if (*currentptr == '#' || currentptr == NULL) continue;
 		currentptr = strtok_s(ptr, "\t", &nextptr);	
-		if (currentptr) ALID = atol(currentptr);
+		if (currentptr)
+		{
+			ALID = atol(currentptr);
+		}
 		while (currentptr)
 		{
 			currentptr = strtok_s(NULL, "\t", &nextptr);
-			if (currentptr)	// CEID
+			if (currentptr)
 			{
-				strALID= currentptr;
-				m_GEM.AddAlarmID(ALID,	strALID, L"");
+				strDesc= currentptr;
+
+				currentptr = strtok_s(NULL, "\t", &nextptr);
+				if (currentptr)	// ALTX
+				{
+					strCode = currentptr;
+					strCode.Replace(L"\n", L"");
+//
+					m_GEM.AddAlarmID(ALID, strDesc, strCode); //AddAlarmID(ALID, ALTX, ALCD); - 2016-03-10 NVIAsoft 김민철과장 확인. ezGEM 매뉴얼 오류
+//ALCD	Alarm code byte	
+//bit 8 = 1 means alarm set	
+//bit 8 = 0 means alarm cleared	
+//bit 7-1 is alarm category (not used in GEM)
+				}
 			}
 		}
 	}
 	fclose(fp);
 }
+/*
+S5, F1  Alarm Report Send (ARS)						     S , H  E, reply
 
+Description	: Equipment uses this message to report a change in or presence of an alarm condition. This message will be sent when the alarm is set, and again when the alarm is cleared.
+
+Structure	: L, 3
+		1. <B       ALCD>
+		2. <U2     ALID>
+		3. <A[40] ALTX>
+
+Note	:
+ALCD	Alarm code byte	
+bit 8 = 1 means alarm set	
+bit 8 = 0 means alarm cleared	
+bit 7-1 is alarm category (not used in GEM)
+ALID	Alarm Identification Code
+ALTX	Alarm text description
+*/
 BOOL CWLP_GEM_AgentDlg::ReadConfigFile() // \\GEM\\GEM.INI, \\GEM\SVID.txt, \\GEM\CEID.txt, \\GEM\ALID.txt 
 {
 	TCHAR szCurrentPath[1024], szValue[0xFF];
@@ -845,13 +883,14 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	CString strSend;
 
 	BOOL bRet = FALSE;
+	int  nRet = -1;
 
 	strCommand = strRcv.Left(3);
 	strPacketBody = strRcv.Mid(8);
 
 	if(strCommand == L"STA")
 	{
-		BOOL bRet = GEMStart();
+		bRet = GEMStart();
 		if(	bRet == TRUE)
 		{
 			strSend = L"STA0011|OK|";
@@ -865,7 +904,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	}
 	else if(strCommand == L"STP")
 	{
-		BOOL bRet = GEMStop();
+		bRet = GEMStop();
 		PostQuitMessage(WM_QUIT);
 		/*if( bRet == TRUE )
 		{
@@ -879,7 +918,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	}
 	else if(strCommand == L"ERS")
 	{
-		int nRet = SendERS(strPacketBody);
+		nRet = SendERS(strPacketBody);
 		if(nRet >= 0)
 		{
 			strSend = L"ERS0011|OK|";
@@ -891,7 +930,15 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	}
 	else if(strCommand == L"ARS")
 	{
-		SendARS(strPacketBody);
+		nRet = SendARS(strPacketBody);
+		if(nRet >= 0)
+		{
+			strSend = L"ARS0011|OK|";
+		}
+		else
+		{
+			strSend = L"ARS0011|NG|";
+		}
 	}
 	else if(strCommand == L"TDS")
 	{
@@ -1068,10 +1115,28 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 	return nRet;
 }
 
-void CWLP_GEM_AgentDlg::SendARS(CString strPacketBody)
+int CWLP_GEM_AgentDlg::SendARS(CString strPacketBody)
 {
-	//TO-DO
-	;
+
+	CString strALID = strPacketBody.Left(4);
+	CString strSet = strPacketBody.Mid(5,1); //1: Alarm Set, 0: Alarm Clear
+	
+	long  ALID = _wtoi(strALID);
+	short nALCD = 0x00;
+
+	if(strSet == L"1")
+	{
+		nALCD = 0x80 + m_GEM.GetAlarmCode(ALID); 
+	}
+	else if (strSet == L"0")
+	{
+		nALCD = 0x00;
+	}
+
+	int nRet = m_GEM.SendAlarmReport(ALID, nALCD);
+
+	return nRet;
+
 }
 
 BOOL CWLP_GEM_AgentDlg::ProcGEM_ToEQ(CString strSendPacket)

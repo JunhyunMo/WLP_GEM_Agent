@@ -108,7 +108,7 @@ public:
 	BOOL	ProcGEM_ToEQ(CString strSnd);
 
 	int 	SendERS(CString strPacketBody);
-	void	SendARS(CString strPacketBody);
+	int		SendARS(CString strPacketBody);
 
 	void    GetRecipeList(CStringList &strList);
 
