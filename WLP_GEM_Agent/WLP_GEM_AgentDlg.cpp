@@ -891,30 +891,22 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	if(strCommand == L"STA")
 	{
 		bRet = GEMStart();
+
 		if(	bRet == TRUE)
 		{
 			strSend = L"STA0011|OK|";
+			m_GEM.GoOnlineRemote(); //2016-02-11 ERS만! RCMD 처리안함. 실질적으로 OnlineLocal...
+			m_bOnlineRemote = FALSE;
 		}
-		/*else
-		{
-			strSend = L"STA0011|NG|";
-		}*/
-		m_GEM.GoOnlineRemote(); //2016-02-11 ERS만! RCMD 처리안함. 실질적으로 OnlineLocal...
-		m_bOnlineRemote = FALSE;
 	}
 	else if(strCommand == L"STP")
 	{
 		bRet = GEMStop();
+		strSend = L"STP0011|OK|";
+	}
+	else if(strCommand == L"END")
+	{
 		PostQuitMessage(WM_QUIT);
-		/*if( bRet == TRUE )
-		{
-			strSend = L"STP0011|OK|";
-		}
-		else
-		{
-			strSend = L"STP0011|NG|";
-		}
-		m_GEM.GoOffline();*/
 	}
 	else if(strCommand == L"ERS")
 	{
