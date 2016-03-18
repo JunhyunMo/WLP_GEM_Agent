@@ -259,14 +259,10 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 		m_GEM.SetHostMode(FALSE);
 
 		AddLogGEM(L"Started");
-		GetDlgItem(IDC_BT_GEM_START)->EnableWindow(FALSE);
-		return TRUE;
+		GetDlgItem(IDC_BT_GEM_START)->EnableWindow(FALSE);	
 	}
-	else
-	{
-		//AddLogGEM(L"GEM start fail");
-		return FALSE;
-	}
+
+	return TRUE;
 //2016-01-08 박성우과장 문의. 
 	//m_GEM.GoOffline();  //offline 상태 event는 먼저 보내주어야 한다. - 이후 ezGEM driver 모든 처리 없으므로 S1,F15 
 	//S1, F17 받았을때 이전상태로 - Local 또는 Remote
@@ -892,7 +888,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	{
 		bRet = GEMStart();
 
-		if(	bRet == TRUE)
+		//if(	bRet == TRUE)
 		{
 			strSend = L"STA0011|OK|";
 			m_GEM.GoOnlineRemote(); //2016-02-11 ERS만! RCMD 처리안함. 실질적으로 OnlineLocal...
@@ -901,7 +897,9 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	}
 	else if(strCommand == L"STP")
 	{
-		bRet = GEMStop();
+		GEMStop(); 
+		
+		//nRet = SendERS(strPacketBody);
 		strSend = L"STP0011|OK|";
 	}
 	else if(strCommand == L"END")
@@ -1096,6 +1094,12 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
 		m_GEM.SetCurrentStatusValue(DVID_MAP_DATA, strValue); //MAP_DATA - 3230
 	}
+	else if(strCEID == L"1001" || strCEID == L"1002" || strCEID == L"1003") //CONTROL STATE 
+	{
+		nIdx = strSV.Find(L"|");
+		strValue = strSV.Left(nIdx);
+		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, strValue); //CONTROL_STATE -  2260
+	}
 	else
 	{
 		return -1;
@@ -1184,18 +1188,8 @@ BOOL CWLP_GEM_AgentDlg::ProcGEM_ToEQ(CString strSendPacket)
 void CWLP_GEM_AgentDlg::OnConnectedEzgemctrl1()
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	AddLogGEM(L"Connected.");
 
-	CString strPacket, strMsg;
-	strPacket = L"ROF0008|";
-	
-	if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
-	{
-		m_bOnlineRemote = FALSE;
-		strMsg.Format(L"[SND]%s",strPacket);
-		AddLogTCP(strMsg);
-		GetLog()->Debug(strMsg.GetBuffer());
-	}
+	AddLogGEM(L"Connected.");
 }
 
 void CWLP_GEM_AgentDlg::OnDisconnectedEzgemctrl1()
@@ -1226,6 +1220,11 @@ void CWLP_GEM_AgentDlg::OnSecsMsgInEzgemctrl1(short nStream, short nFunction, sh
 		str.Format(L"[SECS-II:IN]S%dF%d",nStream,nFunction);
 
 	AddLogGEM(str);
+
+	if((nStream == 1 && nFunction == 13) || (nStream == 1 && nFunction == 14) )//EAP 접속시
+	{
+		SetTimer(IDD+1, 1000, NULL);
+	}
 }
 
 void CWLP_GEM_AgentDlg::OnSecsMsgOutEzgemctrl1(short nStream, short nFunction, short nWbit, long lSysByte)
@@ -1246,15 +1245,14 @@ void CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1(long lMsgId)
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
 	//m_GEM.SetCurrentStatusValue(SVID_STATE, L"1"); //SVID_STATE 2250  1: COMMUNICATING
 	//m_GEM.SendEventReport(3000);
-
+	
 }
 /////////////////////////////////Control State
 //HOST S1,F17 Request ON-LINE (RONL)
+//2016-02-11 - m_GEM.DisableAutoReply(1,17);
+//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
 void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 {
-	;
-	//2016-02-11 - m_GEM.DisableAutoReply(1,17);
-	//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
 }
 //HOST S!,F17 ONLINE 허용했을때 발생하는 이벤트
 //2016-02-11 m_GEM.GoOnlineRemote() 에서도 발생.
@@ -1275,22 +1273,12 @@ void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 }
 //
 //S1, F15  Request OFF-LINE (ROFL)	- Online 일때...
+//2016-02-11 - m_GEM.DisableAutoReply(1,15);
+//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
 void CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1(long lMsgId)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	//if(m_bEqConnect == TRUE)
-	//{
-	//	if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
-	//	{
-	//		//m_GEM.GoOffline(); 
-	//		//2016-02-11 ERS는 올림. RCMD만 처리안함.
-	//		m_GEM.GoOnlineLocal(); 
-	//		m_bOnlineRemote = FALSE;
-	//	}
-	//}
-	
-	//2016-02-11 - m_GEM.DisableAutoReply(1,15);
-	//OnMsgRequestedEzgemctrl1(long lMsgId)에서 처리
+	;
 }
 
 //S2,F31
@@ -1450,16 +1438,35 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	{ 
 		if(m_bEqConnect == TRUE)
 		{
-			if(ProcGEM_ToEQ(L"ROF0008|") == TRUE) //ON-LINE LOCAL
+			//2016-03-17 OFF-LINE	
+			CString strPacket, strMsg;
+			strPacket = L"OFF0008|";
+
+			if(ProcGEM_ToEQ(strPacket) == TRUE) //OFF-LINE
 			{
-				//m_GEM.GoOffline(); 
-				//2016-02-11 ERS는 올림. RCMD만 처리안함.
-				m_GEM.GoOnlineLocal();
+				//strPacket = L"OFF0008|";
+	
+				//if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
+				//{
 				m_bOnlineRemote = FALSE;
+				strMsg.Format(L"[SND]%s",strPacket);
+				AddLogTCP(strMsg);
+				GetLog()->Debug(strMsg.GetBuffer());
+
 				lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S1F16
 				nACK = 0x00;
 				m_GEM.AddBinaryItem(lReplyMsgId, &nACK, 1);
 				m_GEM.SendMsg(lReplyMsgId);
+
+				m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OFF-LINE"); //S6F11
+
+				long lCEID =1001; //OFF-LINE
+				int nRet = m_GEM.SendEventReport(lCEID);
+
+				GEMStop();
+
+				//m_GEM.GoOffline(); //이후 HOST req에 SxF0 올려야 하는데, 표준과 다름. 이상함. - TO KNOW... 필요시 수작업 처리	
+				//2016-03-17 그냥 OFF
 			}
 		}
 	}
@@ -1472,8 +1479,12 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 		{	
 			m_GEM.GoOnlineRemote(); //Request Online Remote
 			m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	
-		}
 
+			m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-REMOTE"); //S6F11
+
+			long lCEID =1003; //ONLINE-REMOTE
+			int nRet = m_GEM.SendEventReport(lCEID);
+		}
 	}
 
 	//S7,F3 Process Program Send (PPS)  / S7,F4 Process Program Acknowledge (PPA) - Unformatted
@@ -1536,6 +1547,7 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 			strRecipe = m_strListRecipe.GetAt(m_strListRecipe.FindIndex(i));
 			m_GEM.AddAsciiItem(lReplyMsgId, strRecipe, strRecipe.GetLength());
 		}
+
 		m_GEM.CloseListItem(lReplyMsgId);
 		m_GEM.SendMsg(lReplyMsgId);
 		m_GEM.CloseMsg(lReplyMsgId);
@@ -1574,7 +1586,8 @@ void CWLP_GEM_AgentDlg::OnBnClickedBtRecipe()
 		strTemp += m_strListRecipe.GetAt(m_strListRecipe.FindIndex(i));
 		strTemp += L"\n";
 	}
-	MessageBox(strTemp, L"Recipe List", MB_OK|MB_ICONINFORMATION);
+
+	MessageBox(strTemp, L"Recipe List", MB_OK|MB_ICONINFORMATION);	
 }
 
 void CWLP_GEM_AgentDlg::GetRecipeList(CStringList &strList)
@@ -1625,6 +1638,49 @@ void CWLP_GEM_AgentDlg::OnTimer(UINT_PTR nIDEvent)
 		else if(m_bEqConnect == FALSE)
 		{
 			PostQuitMessage(WM_QUIT);
+		}
+	}
+	else if(nIDEvent == IDD+1)
+	{
+		//2016-03-16
+		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
+
+		long lCEID =1002;
+		int nRet = m_GEM.SendEventReport(lCEID);
+
+		CString strPacket, strMsg;
+		strPacket = L"ROF0008|";
+	
+		BOOL bRet = ProcGEM_ToEQ(strPacket);
+
+		if(bRet == TRUE)
+		{
+			m_bOnlineRemote = FALSE;
+		}
+
+		if(nRet >= 0 && bRet == TRUE) //ON-LINE LOCAL
+		{
+			KillTimer(IDD+1);
+			strMsg = L"ONLINE-LOCAL ERS\r\n"
+					 L"ProcGEM_ToEQ('ROF0008|')";
+			GetLog()->Debug(strMsg.GetBuffer());
+		}
+		else
+		{
+			if(nRet < 0)
+			{
+				strMsg = L"[ERR] ONLINE-LOCAL ERS";
+			}
+			else if(bRet == FALSE)
+			{
+				strMsg = L"[ERR] ProcGEM_ToEQ('ROF0008|')";
+			}
+			if(nRet < 0 && bRet == FALSE)
+			{
+				strMsg = L"[ERR] ONLINE-LOCAL ERS\r\n"
+					     L"[ERR] ProcGEM_ToEQ('ROF0008|')";
+			}
+			GetLog()->Debug(strMsg.GetBuffer());
 		}
 	}
 

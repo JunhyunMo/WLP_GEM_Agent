@@ -61,6 +61,7 @@ typedef enum
 #define SVID_WAFER_ID			2230
 #define SVID_SLOT_ID			2240
 #define SVID_STATE				2250
+#define SVID_CONTROL_STATE		2260
 
 //DVID - data variable
 #define	DVID_COLLECTION_DATA	3000
