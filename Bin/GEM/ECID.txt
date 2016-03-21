@@ -1,9 +1,0 @@
-3001	TCP Port		
-3002	Device ID		
-3003	T3 Timeout	second	U1
-3005	T5 Timeout	second	U1
-3006	T6 Timeout	second	U1
-3007	T7 Timeout	second	U1
-3008	T8 Timeout	second	U1
-3009	LinkTestInterval	second	U1
-3010	RetryLimit	second	U1
