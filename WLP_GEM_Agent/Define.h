@@ -100,18 +100,17 @@ typedef enum
 #define CEID_UNLOAD_COMPLETE		 2600
 #define CEID_Processing_State_Change 3000
 
-//ECID
-#define ECID_TCP_Port				3001
+//ECID - 2016-03-21
+#define ECID_PORT					3001
 #define ECID_DEVICEID				3002
 #define ECID_T3						3003
 #define ECID_T5						3005
 #define ECID_T6						3006
 #define ECID_T7						3007
 #define ECID_T8						3008
-//#define ECID_CONVERSATION_TIMEOUT	3007
 #define ECID_LINKTEST				3009
 #define ECID_RETRY					3010
-//etc
+
 
 /////////////////////////////////////////////////////////////////////////////////////////
 #define SVID_COMMSTATE			2001
@@ -144,29 +143,6 @@ typedef enum
 #define SVID_PPCHANGE_STATUS	2062
 
 //////////////////////////////////////////////////////////
-
-//#define ECID_PORT					3001
-
-#define	ECID_ESTABLISH_TIMEOUT		3001
-
-
-
-
-#define ECID_DEFAULT_COMM_STATE		3010
-#define ECID_DEFAULT_CONTROL_STATE	3011
-
-//#define ECID_MDLN					3103
-//#define ECID_SOFTREV				3104
-
-#define ECID_MAX_SPOOL_SIZE			3012
-#define ECID_MAXSPOOL_TRANSMIT		3013
-#define ECID_SPOOL_OVERWRITE		3014
-#define ECID_SPOOLING_MODE			3015
-
-#define ECID_TIME_FORMAT			3016
-#define ECID_JOBINFO_OPCONFIRM		3017
-#define ECID_IDLE_TIME				3018
-//#define ECID_BCR_USE				3600
 
 #define INTERVAL_SETTIME			1000
 #define TIMERID_TRAY				1001

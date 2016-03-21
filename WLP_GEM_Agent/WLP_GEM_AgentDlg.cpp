@@ -507,51 +507,53 @@ void CWLP_GEM_AgentDlg::AddCEID()
 
 void CWLP_GEM_AgentDlg::AddECID() //Equipment Constant ID
 {
-	char *ptr, buff[0xFF], *nextptr, *currentptr;
-	long ECID = 0;
-	CString strECID=L"";
-	CString strUNIT=L"";
-	CString strFORMAT=L"";
-
-	// 파일의 위치는 받아와서 진행이 가능하도록 수정.
-	FILE *fp;
-	fopen_s(&fp,(CStringA)m_strECIDFilePath,"r+t"); // !주의 "GEM\\ECID.TXT"
-	if (fp == NULL)
-	{
-		AfxMessageBox(L"GEM/ECID.TXT 파일을 찾을수 없습니다.");
-		return;
-	}
-
-	while ((ptr = fgets(buff, 0xFF, fp)) != NULL)
-	{
-		//ptr = strtok_s(ptr, "\r\n", &nextptr);
-		//if (*ptr == '#' || ptr == NULL) continue;
-		currentptr = strtok_s(ptr, "\t", &nextptr);	
-		if (currentptr) ECID = atol(currentptr); //ECID
-		while (currentptr)
-		{
-			currentptr = strtok_s(NULL, "\t", &nextptr);
-			if (currentptr)	// NAME
-			{
-				strECID= currentptr;
-				//m_GEM.AddCEID(ECID,	strECID, L"");
-			}
-			currentptr = strtok_s(NULL, "\t", &nextptr);
-			if (currentptr)	// UNIT
-			{
-				strUNIT= currentptr;
-				//m_GEM.AddCEID(ECID,	strECID, L"");
-			}
-			currentptr = strtok_s(NULL, "\t", &nextptr);
-			if (currentptr)	// FORMAT
-			{
-				strFORMAT= currentptr;
-				//m_GEM.AddCEID(ECID,	strECID, L"");
-			}
-			m_GEM.AddECID(ECID,strECID,strUNIT,strFORMAT);
-		}
-	}
-	fclose(fp);
+	
+	CString strTemp;
+	
+	m_GEM.AddECID(ECID_PORT,			_T("PortNumber"), _T(""), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_PORT, _T("2000"), _T("65535"));
+	strTemp.Format(_T("%ld"), m_nPort);
+	m_GEM.SetEquipConstValue(ECID_PORT, strTemp); //(ECID)3001
+	
+	m_GEM.AddECID(ECID_DEVICEID,		_T("DeviceID"), _T(""), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_DEVICEID, _T("0"), _T("127"));
+	strTemp.Format(_T("%d"), m_nDeviceID);
+	m_GEM.SetEquipConstValue(ECID_DEVICEID, strTemp);//(ECID)3002
+	
+	m_GEM.AddECID(ECID_T3,				_T("T3 Timeout"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_T3, _T("1"), _T("255"));
+	strTemp.Format(_T("%d"), m_nT3);
+	m_GEM.SetEquipConstValue(ECID_T3, strTemp);//(ECID)3003
+	
+	m_GEM.AddECID(ECID_T5,				_T("T5 Timeout"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_T5, _T("1"), _T("255"));
+	strTemp.Format(_T("%d"), m_nT5);
+	m_GEM.SetEquipConstValue(ECID_T5, strTemp);	//(ECID)3005
+	
+	m_GEM.AddECID(ECID_T6,				_T("T6 Timeout"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_T6, _T("1"), _T("255"));
+	strTemp.Format(_T("%d"), m_nT6);
+	m_GEM.SetEquipConstValue(ECID_T6, strTemp);	//(ECID)3006
+	
+	m_GEM.AddECID(ECID_T7,				_T("T7 Timeout"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_T7, _T("1"), _T("255"));
+	strTemp.Format(_T("%d"), m_nT7);
+	m_GEM.SetEquipConstValue(ECID_T7, strTemp);	//(ECID)3007
+	
+	m_GEM.AddECID(ECID_T8,				_T("T8 Timeout"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_T8, _T("1"), _T("255"));
+	strTemp.Format(_T("%d"), m_nT8);
+	m_GEM.SetEquipConstValue(ECID_T8, strTemp);	//(ECID)3008
+	
+	m_GEM.AddECID(ECID_LINKTEST,		_T("LinkTestInterVal"), _T("second"), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_LINKTEST, _T("0"), _T("255"));
+	strTemp.Format(_T("%d"), m_nLinkInterval);
+	m_GEM.SetEquipConstValue(ECID_LINKTEST, strTemp);	//(ECID)3009
+	
+	m_GEM.AddECID(ECID_RETRY,			_T("RetryLimit"), _T(""), _T("U2"));
+	m_GEM.SetEquipConstRange(ECID_RETRY, _T("0"), _T("255"));
+	strTemp.Format(_T("%d"), m_nRetry);
+	m_GEM.SetEquipConstValue(ECID_RETRY, strTemp);	//(ECID)3010
 }
 
 void CWLP_GEM_AgentDlg::AddALID() //Alarm ID
@@ -1552,7 +1554,6 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 		m_GEM.SendMsg(lReplyMsgId);
 		m_GEM.CloseMsg(lReplyMsgId);
 	}
-
 }
 
 //S10F3 H->E Terminal Display, Single (VTN)	/S10F4 H<-E Terminal Display, Single Acknowledge (VTA) 
