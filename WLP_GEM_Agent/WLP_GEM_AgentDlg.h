@@ -49,7 +49,6 @@ public:
 	CString			m_strIniFilePath;
 	CString			m_strCEIDFilePath; 
 	CString			m_strSVIDFilePath; 
-	CString			m_strECIDFilePath; 
 	CString			m_strALIDFilePath;
 
 	//////////Control State/////////

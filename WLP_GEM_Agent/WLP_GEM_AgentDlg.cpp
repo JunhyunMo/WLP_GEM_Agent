@@ -47,7 +47,6 @@ CWLP_GEM_AgentDlg::CWLP_GEM_AgentDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CWLP_GEM_AgentDlg::IDD, pParent)
 	, m_strCEIDFilePath(L"")
 	, m_strSVIDFilePath(L"")
-	, m_strECIDFilePath(L"")
 	, m_strALIDFilePath(L"")
 	, m_strIniFilePath(L"")
 {
@@ -639,11 +638,9 @@ BOOL CWLP_GEM_AgentDlg::ReadConfigFile() // \\GEM\\GEM.INI, \\GEM\SVID.txt, \\GE
 	CString strSVIDDefault;
 	CString strCEIDDefault;
 	CString strALIDDefault;
-	CString strECIDDefault;
 
 	strSVIDDefault.Format(L"%s\\GEM\\SVID.txt", strExePath);
 	strCEIDDefault.Format(L"%s\\GEM\\CEID.txt", strExePath);
-	strECIDDefault.Format(L"%s\\GEM\\ECID.txt", strExePath);
 	strALIDDefault.Format(L"%s\\GEM\\ALID.txt", strExePath);
 
 	if(!PathFileExists(strPath)) 
@@ -659,11 +656,6 @@ BOOL CWLP_GEM_AgentDlg::ReadConfigFile() // \\GEM\\GEM.INI, \\GEM\SVID.txt, \\GE
 	else if(!PathFileExists(strCEIDDefault))
 	{
 		MessageBox(L"CEID.txt 파일이 존재하지 않습니다.", L"Error", MB_ICONERROR);
-		return FALSE;
-	}
-	else if(!PathFileExists(strECIDDefault))
-	{
-		MessageBox(L"ECID.txt 파일이 존재하지 않습니다.", L"Error", MB_ICONERROR);
 		return FALSE;
 	}
 	else if(!PathFileExists(strALIDDefault))
@@ -731,13 +723,6 @@ BOOL CWLP_GEM_AgentDlg::ReadConfigFile() // \\GEM\\GEM.INI, \\GEM\SVID.txt, \\GE
 	{	
 		m_strSVIDFilePath = strSVIDDefault;	
 	}
-
-	ZeroMemory(szValue, 0xFF);
-	if (GetPrivateProfileString(HSMS, L"ECIDFILEPATH" , strSVIDDefault, szValue, sizeof(szValue), strPath))
-	{	
-		m_strECIDFilePath = strECIDDefault;	
-	}
-
 	ZeroMemory(szValue, 0xFF);
 	if (GetPrivateProfileString(HSMS, L"ALIDFILEPATH" , strSVIDDefault, szValue, sizeof(szValue), strPath))
 	{	
