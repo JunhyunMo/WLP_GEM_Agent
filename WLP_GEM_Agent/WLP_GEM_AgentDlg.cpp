@@ -504,6 +504,7 @@ void CWLP_GEM_AgentDlg::AddCEID()
 	fclose(fp);
 }
 
+//ECID는 직접 입력 - NVIAsoft 외주 코드 - GEM_HITS_LSPLC_20131024_FINAL 참조
 void CWLP_GEM_AgentDlg::AddECID() //Equipment Constant ID
 {
 	
@@ -1301,12 +1302,12 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 	// 2 = PARAMETER IS INVALID
 	// 3 = ALREADY IN DESIRED CONDITION
 	// 4 = UNABLE TO PERFORM, INTERNAL ERROR OCCURRED
-	short nNAK = 0x01;
-	if(m_bOnlineRemote == FALSE) //OnlineLocal 일때 처리안함.
-	{
-		m_GEM.DenyRemoteCommand(lMsgId,strCommand,nNAK);
-		return;
-	}
+//short nNAK = 0x01;
+//if(m_bOnlineRemote == FALSE) //OnlineLocal 일때 처리안함.
+//{
+//	m_GEM.DenyRemoteCommand(lMsgId,strCommand,nNAK);
+//	return;
+//}
 
 	CString strParamName, strParamValue;
 	CString strPacketBody = L""; //VISION 전송용 Packet Body;
@@ -1379,7 +1380,7 @@ BOOL CWLP_GEM_AgentDlg::CheckPort(CString strParamValue)
 {
 	CString strCurPort = m_GEM.GetCurrentStatusValue(SVID_PORT_ID);
 
-	if(strParamValue == strCurPort)
+	if(strParamValue == strCurPort || strParamValue == L"65536") //2015.03.31 PI팀 검수 - 10000000000000000 ->  2^16 - PLC 
 	{
 		return TRUE;
 	}
@@ -1450,10 +1451,10 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 				long lCEID =1001; //OFF-LINE
 				int nRet = m_GEM.SendEventReport(lCEID);
 
-				GEMStop();
+				//GEMStop(); 2015.03.31 PI팀 검수시 주석처리- OFF-LINE 이라도 연결은 유지 
 
 				//m_GEM.GoOffline(); //이후 HOST req에 SxF0 올려야 하는데, 표준과 다름. 이상함. - TO KNOW... 필요시 수작업 처리	
-				//2016-03-17 그냥 OFF
+
 			}
 		}
 	}

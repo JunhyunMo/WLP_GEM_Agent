@@ -1,2 +1,25 @@
-1	Alarm1	0
-2	Alarm2	0
+1	Emergency Stop	0
+2	Main Air	0
+3	Robot Air	0
+4	카세트 불량 적재	0
+5	Robot Alarm	0
+6	Door1 Open	0
+7	Door2 Open	0
+8	Door3 Open	0
+9	Door4 Open	0
+10	Door5 Open	0
+11	Door6 Open	0
+12	Door7 Open	0
+13	1Axis Grab Speed Alarm	0
+14	PC Alarm	0
+15	Inspect start Time Out	0
+16	Align Start Time Out	0
+17	Focus Start Time Out	0
+18	Grab Start Time Out	0
+19	Grab End Time Out	0
+20	Inspect Data Write Time Out	0
+21	Inspect Vacuum Check Time Out	0
+22	Door8 Open	0
+23	Door9 Open	0
+24	Door10 Open	0
+25	reserved	0
