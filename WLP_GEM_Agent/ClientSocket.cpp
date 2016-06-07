@@ -61,8 +61,8 @@ void CClientSocket::OnReceive(int nErrorCode)
 		strRcv.Format(L"%s",szTBuffer);	
 		pMain->ProcGEM_FromEQ(strRcv);
 
-		strLog.Format(L"[RCV]%s",strRcv);
-		GetLog()->Debug(strRcv.GetBuffer());
+		/*strLog.Format(L"[RCV]%s",strRcv);
+		GetLog()->Debug(strRcv.GetBuffer());*/ //2016-06-06 log ม฿บน
 	}
 	
 	CSocket::OnReceive(nErrorCode);

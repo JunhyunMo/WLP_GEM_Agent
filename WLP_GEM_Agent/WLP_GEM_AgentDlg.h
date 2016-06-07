@@ -51,6 +51,8 @@ public:
 	CString			m_strSVIDFilePath; 
 	CString			m_strALIDFilePath;
 
+	CString			m_strStartPortID; //2016-06-01 Garbage√≥∏Æ- BCR-READ
+
 	//////////Control State/////////
 	UINT			m_nControlState;
 	UINT			m_nPrevControlState;
@@ -137,4 +139,5 @@ public:
 	void OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR strMsg, short nCode); //S10,F3
 	void OnOfflineRequestEzgemctrl1(long lMsgId);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	void OnTerminalMessageMultiEzgemctrl1(long lMsgId, short nCode, short nCount);
 };

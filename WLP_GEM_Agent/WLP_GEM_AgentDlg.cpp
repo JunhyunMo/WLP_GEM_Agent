@@ -49,6 +49,7 @@ CWLP_GEM_AgentDlg::CWLP_GEM_AgentDlg(CWnd* pParent /*=NULL*/)
 	, m_strSVIDFilePath(L"")
 	, m_strALIDFilePath(L"")
 	, m_strIniFilePath(L"")
+	, m_strStartPortID(L"")
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_bEqConnect = FALSE;
@@ -201,6 +202,7 @@ BEGIN_EVENTSINK_MAP(CWLP_GEM_AgentDlg, CDialogEx)
 	ON_EVENT(CWLP_GEM_AgentDlg, IDC_EZGEMCTRL1, 4, CWLP_GEM_AgentDlg::OnEstablishCommRequestEzgemctrl1, VTS_I4)
 	ON_EVENT(CWLP_GEM_AgentDlg, IDC_EZGEMCTRL1, 17, CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1, VTS_NONE)
 	ON_EVENT(CWLP_GEM_AgentDlg, IDC_EZGEMCTRL1, 6, CWLP_GEM_AgentDlg::OnOfflineRequestEzgemctrl1, VTS_I4)
+	ON_EVENT(CWLP_GEM_AgentDlg, IDC_EZGEMCTRL1, 14, CWLP_GEM_AgentDlg::OnTerminalMessageMultiEzgemctrl1, VTS_I4 VTS_I2 VTS_I2)
 END_EVENTSINK_MAP()
 
 void CWLP_GEM_AgentDlg::OnBnClickedBtGEMStart()
@@ -243,7 +245,7 @@ BOOL CWLP_GEM_AgentDlg::GEMStart()
 	m_GEM.DisableAutoReply(7, 19);	///S7, F19 Current EPPD Request
 	
 	//2016-02-11
-	m_GEM.DisableAutoReply(1,15);
+	m_GEM.DisableAutoReply(1,15); //?? 응답이 올라옴. S1F16
 	m_GEM.DisableAutoReply(1,17);
 	//TO-Check!
 	/*m_GEM.DisableAutoReply(7, 17);	
@@ -876,7 +878,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	{
 		bRet = GEMStart();
 
-		//if(	bRet == TRUE)
+		if(	bRet == TRUE)
 		{
 			strSend = L"STA0011|OK|";
 			m_GEM.GoOnlineRemote(); //2016-02-11 ERS만! RCMD 처리안함. 실질적으로 OnlineLocal...
@@ -894,7 +896,7 @@ void CWLP_GEM_AgentDlg::ProcGEM_FromEQ(CString strRcv)
 	{
 		PostQuitMessage(WM_QUIT);
 	}
-	else if(strCommand == L"ERS")
+	else if(strCommand == L"ERS") //2016-06-06 1001,1002,1003 추가 - 장비에서 Online Local,Remote 설정시 이벤트
 	{
 		nRet = SendERS(strPacketBody);
 		if(nRet >= 0)
@@ -945,29 +947,59 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 	int nIdxPrev = -1;
 
 	//recv packet ex) ERS0017|1200|2|2|
-
-	if(strCEID == L"1200" || strCEID == L"1400" || strCEID == L"1600" || strCEID == L"2600") //BCR_READ, LOAD_COMPLETE, CASSETTE_START, UNLOAD_COMPLETE
+	if(strCEID == L"1600" || strCEID == L"2600" || strCEID == L"1400") // CASSETTE_START(1600), UNLOAD_COMPLETE(2600), LOAD_COMPLETE(1400)
 	{
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
 		nIdxPrev = nIdx;
 		m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
+		//2016-06-01 Garbage처리- BCR_READ(1200)
+		if(strCEID == L"1600") //CASSETTE START(1600)
+		{
+			m_strStartPortID = strValue;
+		}
 
 		nIdx = strSV.Find(L"|",nIdxPrev+1);
 		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
 		m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID - 2220
 	}
-	else if(strCEID == L"1300" || strCEID == L"2500") //LOAD_REQUEST, UNLOAD REQUEST
+	else if(strCEID == L"1200" ) // BCR_READ(1200)
 	{
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
-		m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID -  2220
+		//2016-06-01 Garbage처리
+		if(_wtoi(strValue) > 3 || _wtoi(strValue) < 0)
+		{
+			strValue = m_strStartPortID;
+		}
+		nIdxPrev = nIdx;
+		m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
+
+		nIdx = strSV.Find(L"|",nIdxPrev+1);
+		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
+		//2016-06-01 Garbage처리
+		if(_wtoi(strValue) > 3 || _wtoi(strValue) < 0)
+		{
+			strValue = m_strStartPortID;
+		}
+		m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID - 2220
 	}
+	//else if(strCEID == L"1300" || strCEID == L"2500") //LOAD_REQUEST, UNLOAD REQUEST
+	//{
+	//	nIdx = strSV.Find(L"|");
+	//	strValue = strSV.Left(nIdx);
+	//	m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID -  2220
+	//}
 	else if(strCEID == L"1500") //PP-SELECTED 
 	{
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
 		nIdxPrev = nIdx;
+		//2016-06-01 Garbage처리
+		if(_wtoi(strValue) > 3 || _wtoi(strValue) < 0)
+		{
+			strValue = m_strStartPortID;
+		}
 		m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID - 2220
 
 		nIdx = strSV.Find(L"|",nIdxPrev+1);
@@ -975,7 +1007,7 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		m_GEM.SetCurrentStatusValue(SVID_PPID, strValue); //PPID - 2010
 	}
 	else if(strCEID == L"1700" || strCEID == L"1701" || strCEID == L"1800" || strCEID == L"2000" || strCEID == L"2100" || //WAFER LOAD, WAFER LOAD FIRST, WAFER START,WAFER END,WAFER UNLOAD
-			strCEID == L"2101" || strCEID == L"2200") //WAFER UNLOAD LAST, LAST WAFER UNLOAD
+			strCEID == L"2101" ) //WAFER UNLOAD LAST
 	{
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
@@ -1033,44 +1065,44 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 		m_GEM.SetCurrentStatusValue(DVID_MULTI_NG, strValue); // 3220 - Multiple NG - - 98
 
 	}
-	else if(strCEID == L"2300") //DATA COLLECTION
-	{
-		nIdx = strSV.Find(L"|");
-		strValue = strSV.Left(nIdx);
-		nIdxPrev = nIdx;
-		m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
+	//else if(strCEID == L"2300") //DATA COLLECTION
+	//{
+	//	nIdx = strSV.Find(L"|");
+	//	strValue = strSV.Left(nIdx);
+	//	nIdxPrev = nIdx;
+	//	m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
 
-		nIdx = strSV.Find(L"|",nIdxPrev+1);
-		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev-1);
-		nIdxPrev = nIdx;
-		m_GEM.SetCurrentStatusValue(DVID_TPWC, strValue); //TPWC - 3100
-		
-		nIdx = strSV.Find(L"|",nIdxPrev+1);
-		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
-		m_GEM.SetCurrentStatusValue(DVID_COLLECTION_DATA, strValue); //Collection Data - 3000
-	}
-	else if(strCEID == L"2400") //CASSETTE END
-	{
-		nIdx = strSV.Find(L"|");
-		strValue = strSV.Left(nIdx);
-		nIdxPrev = nIdx;
-		m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
+	//	nIdx = strSV.Find(L"|",nIdxPrev+1);
+	//	strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev-1);
+	//	nIdxPrev = nIdx;
+	//	m_GEM.SetCurrentStatusValue(DVID_TPWC, strValue); //TPWC - 3100
+	//	
+	//	nIdx = strSV.Find(L"|",nIdxPrev+1);
+	//	strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
+	//	m_GEM.SetCurrentStatusValue(DVID_COLLECTION_DATA, strValue); //Collection Data - 3000
+	//}
+	//else if(strCEID == L"2400") //CASSETTE END
+	//{
+	//	nIdx = strSV.Find(L"|");
+	//	strValue = strSV.Left(nIdx);
+	//	nIdxPrev = nIdx;
+	//	m_GEM.SetCurrentStatusValue(SVID_CASSETTE_ID, strValue); //CASSETTE_ID - 2210
 
-		nIdx = strSV.Find(L"|",nIdxPrev+1);
-		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev-1);
-		nIdxPrev = nIdx;
-		m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID - 2220
-		
-		nIdx = strSV.Find(L"|",nIdxPrev+1);
-		strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
-		m_GEM.SetCurrentStatusValue(DVID_TPWC, strValue); //TPWC - 3100
-	}
-	else if(strCEID == L"3000") //Processing State Change
-	{
-		nIdx = strSV.Find(L"|");
-		strValue = strSV.Left(nIdx);
-		m_GEM.SetCurrentStatusValue(SVID_STATE, strValue); //STATE -  2250
-	}
+	//	nIdx = strSV.Find(L"|",nIdxPrev+1);
+	//	strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev-1);
+	//	nIdxPrev = nIdx;
+	//	m_GEM.SetCurrentStatusValue(SVID_PORT_ID, strValue); //PORT_ID - 2220
+	//	
+	//	nIdx = strSV.Find(L"|",nIdxPrev+1);
+	//	strValue = strSV.Mid(nIdxPrev+1, nIdx-nIdxPrev -1);
+	//	m_GEM.SetCurrentStatusValue(DVID_TPWC, strValue); //TPWC - 3100
+	//}
+	//else if(strCEID == L"3000") //Processing State Change
+	//{
+	//	nIdx = strSV.Find(L"|");
+	//	strValue = strSV.Left(nIdx);
+	//	m_GEM.SetCurrentStatusValue(SVID_STATE, strValue); //STATE -  2250
+	//}
 	else if(strCEID == L"1910") //MAP DCOL
 	{
 		nIdx = strSV.Find(L"|");
@@ -1084,6 +1116,16 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 	}
 	else if(strCEID == L"1001" || strCEID == L"1002" || strCEID == L"1003") //CONTROL STATE 
 	{
+		//2016-06-06
+		if(strCEID == L"1003")
+		{
+			m_bOnlineRemote = TRUE;
+		}
+		else
+		{
+			m_bOnlineRemote = FALSE;
+		}
+		//
 		nIdx = strSV.Find(L"|");
 		strValue = strSV.Left(nIdx);
 		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, strValue); //CONTROL_STATE -  2260
@@ -1190,12 +1232,7 @@ void CWLP_GEM_AgentDlg::OnDisconnectedEzgemctrl1()
 
 	m_bOnlineRemote = FALSE;
 	
-	if(ProcGEM_ToEQ(strPacket) == TRUE) //OFF-LINE
-	{
-		strMsg.Format(L"[SND]%s",strPacket);
-		AddLogTCP(strMsg);
-		GetLog()->Debug(strMsg.GetBuffer());
-	}
+	ProcGEM_ToEQ(strPacket); //OFF-LINE
 }
 
 void CWLP_GEM_AgentDlg::OnSecsMsgInEzgemctrl1(short nStream, short nFunction, short nWbit, long lSysByte)
@@ -1209,10 +1246,11 @@ void CWLP_GEM_AgentDlg::OnSecsMsgInEzgemctrl1(short nStream, short nFunction, sh
 
 	AddLogGEM(str);
 
-	if((nStream == 1 && nFunction == 13) || (nStream == 1 && nFunction == 14) )//EAP 접속시
-	{
-		SetTimer(IDD+1, 1000, NULL);
-	}
+	//2016-06-06 일단 막음 - control mode는 장비 수동설정으로 통일
+	//if((nStream == 1 && nFunction == 13) || (nStream == 1 && nFunction == 14) )//EAP 접속시
+	//{
+	//	SetTimer(IDD+1, 1000, NULL);
+	//}
 }
 
 void CWLP_GEM_AgentDlg::OnSecsMsgOutEzgemctrl1(short nStream, short nFunction, short nWbit, long lSysByte)
@@ -1246,18 +1284,20 @@ void CWLP_GEM_AgentDlg::OnOnlineRequestEzgemctrl1(long lMsgId)
 //2016-02-11 m_GEM.GoOnlineRemote() 에서도 발생.
 void CWLP_GEM_AgentDlg::OnOnlineRemoteEzgemctrl1()
 {
-	if(m_bOnlineRemote == TRUE) //2016-02-11 HOST로부터 HOST S1,F17 Request ON-LINE (RONL) 받았을 때만...
-	{
-		CString strPacket, strMsg;
-		strPacket = L"RON0008|";
-	
-		if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE Remote
-		{
-			strMsg.Format(L"[SND]%s",strPacket);
-			AddLogTCP(strMsg);
-			GetLog()->Debug(strMsg.GetBuffer());
-		}
-	}
+	////if(m_bOnlineRemote == TRUE) //2016-02-11 HOST로부터 HOST S1,F17 Request ON-LINE (RONL) 받았을 때만...
+	//{
+	//	CString strPacket, strMsg;
+	//	strPacket = L"RON0008|";
+	//
+	//	//if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE Remote
+	//	//{
+	//	//	strMsg.Format(L"[SND]%s",strPacket);
+	//	//	AddLogTCP(strMsg);
+	//	//	GetLog()->Debug(strMsg.GetBuffer());
+	//	//} 2016-06-06 log 중복 - 막음.
+	//	ProcGEM_ToEQ(strPacket);
+	//}
+	;
 }
 //
 //S1, F15  Request OFF-LINE (ROFL)	- Online 일때...
@@ -1302,12 +1342,14 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 	// 2 = PARAMETER IS INVALID
 	// 3 = ALREADY IN DESIRED CONDITION
 	// 4 = UNABLE TO PERFORM, INTERNAL ERROR OCCURRED
-//short nNAK = 0x01;
-//if(m_bOnlineRemote == FALSE) //OnlineLocal 일때 처리안함.
-//{
-//	m_GEM.DenyRemoteCommand(lMsgId,strCommand,nNAK);
-//	return;
-//}
+//2016-06-06 OnlineRemote 일때만 처리
+	
+	if(m_bOnlineRemote == FALSE) //OnlineLocal 일때 처리안함.
+	{
+		short nNAK = 0x01;
+		m_GEM.DenyRemoteCommand(lMsgId,strCommand,nNAK);
+		return;
+	}
 
 	CString strParamName, strParamValue;
 	CString strPacketBody = L""; //VISION 전송용 Packet Body;
@@ -1424,55 +1466,64 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	//S1, F15  Request OFF-LINE (ROFL)
 	if(nStream == 1 && nFunction == 15 && nWbit == 1)
 	{ 
-		if(m_bEqConnect == TRUE)
+		//if(m_bEqConnect == TRUE)
 		{
+			lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S1F16
+			nACK = 0x00;
+			m_GEM.AddBinaryItem(lReplyMsgId, &nACK, 1);
+			m_GEM.SendMsg(lReplyMsgId);
+
+			//ERS
+			//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OFF-LINE"); //S6F11
+			m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OF"); //S6F11 // 2016-05-31
+
+			long lCEID =1001; //OFF-LINE
+			int nRet = m_GEM.SendEventReport(lCEID);
+
 			//2016-03-17 OFF-LINE	
 			CString strPacket, strMsg;
 			strPacket = L"OFF0008|";
 
-			if(ProcGEM_ToEQ(strPacket) == TRUE) //OFF-LINE
-			{
-				//strPacket = L"OFF0008|";
+			m_bOnlineRemote = FALSE;
+			ProcGEM_ToEQ(strPacket); //OFF-LINE
+			//{
+			//	//strPacket = L"OFF0008|";
 	
-				//if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
-				//{
-				m_bOnlineRemote = FALSE;
-				strMsg.Format(L"[SND]%s",strPacket);
-				AddLogTCP(strMsg);
-				GetLog()->Debug(strMsg.GetBuffer());
+			//	//if(ProcGEM_ToEQ(strPacket) == TRUE) //ON-LINE LOCAL
+			//	//{
+			//	
 
-				lReplyMsgId = m_GEM.CreateReplyMsg(lMsgId); //S1F16
-				nACK = 0x00;
-				m_GEM.AddBinaryItem(lReplyMsgId, &nACK, 1);
-				m_GEM.SendMsg(lReplyMsgId);
+			//	//GEMStop(); 2015.03.31 PI팀 검수시 주석처리- OFF-LINE 이라도 연결은 유지 
 
-				m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OFF-LINE"); //S6F11
+			//	//m_GEM.GoOffline(); //이후 HOST req에 SxF0 올려야 하는데, 표준과 다름. 이상함. - TO KNOW... 필요시 수작업 처리	
 
-				long lCEID =1001; //OFF-LINE
-				int nRet = m_GEM.SendEventReport(lCEID);
+			//	//2016.04.18 TO-DO 
+			//		//reply S1,F16
 
-				//GEMStop(); 2015.03.31 PI팀 검수시 주석처리- OFF-LINE 이라도 연결은 유지 
-
-				//m_GEM.GoOffline(); //이후 HOST req에 SxF0 올려야 하는데, 표준과 다름. 이상함. - TO KNOW... 필요시 수작업 처리	
-
-			}
+			//}
 		}
 	}
 	//HOST S1,F17 Request ON-LINE (RONL)
 	if(nStream == 1 && nFunction == 17 && nWbit == 1)
 	{
+		//REQUEST ONLINE
+		m_GEM.GoOnlineRemote(); //Request Online Remote
+		m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	S1S18
+		//ERS
+		////m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-REMOTE"); //S6F11
+		//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OR"); //S6F11 // 2016-05-31
+		//
+		//long lCEID =1003; //ONLINE-REMOTE
+		//int nRet = m_GEM.SendEventReport(lCEID);
+
+		//CString strPacket, strMsg;
+		//strPacket = L"RON0008|";
+
+		//m_bOnlineRemote = TRUE;
+		//ProcGEM_ToEQ(strPacket);
 		m_bOnlineRemote = TRUE;
+		//SetTimer(IDD+2, 1000, NULL);
 
-		if(m_bEqConnect == TRUE)
-		{	
-			m_GEM.GoOnlineRemote(); //Request Online Remote
-			m_GEM.AcceptOnlineRequest(lMsgId); //ONLINE 허용;	
-
-			m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-REMOTE"); //S6F11
-
-			long lCEID =1003; //ONLINE-REMOTE
-			int nRet = m_GEM.SendEventReport(lCEID);
-		}
 	}
 
 	//S7,F3 Process Program Send (PPS)  / S7,F4 Process Program Acknowledge (PPA) - Unformatted
@@ -1542,25 +1593,6 @@ void CWLP_GEM_AgentDlg::OnMsgRequestedEzgemctrl1(long lMsgId)
 	}
 }
 
-//S10F3 H->E Terminal Display, Single (VTN)	/S10F4 H<-E Terminal Display, Single Acknowledge (VTA) 
-void CWLP_GEM_AgentDlg::OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR strMsg, short nCode)
-{
-	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-	CString strPacketBody = L""; //VISION 전송용 Packet Body;
-	int nTotalPacketSize = 0;
-	CString	strSendPacket = L"";
-
-	strPacketBody = strMsg;
-	//strPacketBody += L"|";
-			
-	nTotalPacketSize = strPacketBody.GetLength() + 8;
-	strSendPacket.Format(L"TDS%04d|%s|",nTotalPacketSize,strPacketBody);
-
-	ProcGEM_ToEQ(strSendPacket);
-
-	m_GEM.AcceptTerminalMessage(lMsgId);
-}
-
 void CWLP_GEM_AgentDlg::OnBnClickedBtRecipe()
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
@@ -1618,38 +1650,44 @@ void CWLP_GEM_AgentDlg::OnTimer(UINT_PTR nIDEvent)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	if(nIDEvent == IDD)
 	{
-		if(m_bEqConnect == TRUE)
+		/*if(m_bEqConnect == TRUE)
 		{
 			KillTimer(IDD);
 		}
 		else if(m_bEqConnect == FALSE)
 		{
 			PostQuitMessage(WM_QUIT);
-		}
+		}*/
+		PostQuitMessage(WM_QUIT); //2016-06-06 일단 종료후 재실행 유도
 	}
-	else if(nIDEvent == IDD+1)
+	else if(nIDEvent == IDD+1) //ONLINE-LOCAL
 	{
 		//2016-03-16
-		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
+		//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
+		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OL"); // 2016-05-31
 
 		long lCEID =1002;
 		int nRet = m_GEM.SendEventReport(lCEID);
 
 		CString strPacket, strMsg;
-		strPacket = L"ROF0008|";
+		strPacket = L"ROL0008|";
 	
+		if(m_bEqConnect == FALSE)
+		{
+			return; //접속이후...
+		}
+
 		BOOL bRet = ProcGEM_ToEQ(strPacket);
 
-		if(bRet == TRUE)
+		/*if(bRet == TRUE)
 		{
 			m_bOnlineRemote = FALSE;
-		}
+		}*/
 
 		if(nRet >= 0 && bRet == TRUE) //ON-LINE LOCAL
 		{
 			KillTimer(IDD+1);
-			strMsg = L"ONLINE-LOCAL ERS\r\n"
-					 L"ProcGEM_ToEQ('ROF0008|')";
+			strMsg = L"ONLINE-LOCAL ERS - ProcGEM_ToEQ('ROL0008|')";
 			GetLog()->Debug(strMsg.GetBuffer());
 		}
 		else
@@ -1660,16 +1698,62 @@ void CWLP_GEM_AgentDlg::OnTimer(UINT_PTR nIDEvent)
 			}
 			else if(bRet == FALSE)
 			{
-				strMsg = L"[ERR] ProcGEM_ToEQ('ROF0008|')";
+				strMsg = L"[ERR] ProcGEM_ToEQ('ROL0008|')";
 			}
 			if(nRet < 0 && bRet == FALSE)
 			{
-				strMsg = L"[ERR] ONLINE-LOCAL ERS\r\n"
-					     L"[ERR] ProcGEM_ToEQ('ROF0008|')";
+				strMsg = L"[ERR] ONLINE-LOCAL ERS - [ERR] ProcGEM_ToEQ('ROL0008|')";
 			}
 			GetLog()->Debug(strMsg.GetBuffer());
 		}
 	}
+	//else if(nIDEvent == IDD+2) //ONLINE-REMOTE
+	//{
+	//	//2016-03-16
+	//	//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
+	//	m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OR"); // 2016-05-31
+
+	//	long lCEID =1003;
+	//	int nRet = m_GEM.SendEventReport(lCEID);
+
+	//	CString strPacket, strMsg;
+	//	strPacket = L"ROR0008|";
+	//
+	//	if(m_bEqConnect == FALSE)
+	//	{
+	//		return; //접속이후...
+	//	}
+
+	//	BOOL bRet = ProcGEM_ToEQ(strPacket);
+
+	//	/*if(bRet == TRUE)
+	//	{
+	//		m_bOnlineRemote = TRUE;
+	//	}*/
+
+	//	if(nRet >= 0 && bRet == TRUE) //ON-LINE REMOTE
+	//	{
+	//		KillTimer(IDD+2);
+	//		strMsg = L"ONLINE-REMOTE ERS - ProcGEM_ToEQ('ROR0008|')";
+	//		GetLog()->Debug(strMsg.GetBuffer());
+	//	}
+	//	else
+	//	{
+	//		if(nRet < 0)
+	//		{
+	//			strMsg = L"[ERR] ONLINE-REMOTEL ERS";
+	//		}
+	//		else if(bRet == FALSE)
+	//		{
+	//			strMsg = L"[ERR] ProcGEM_ToEQ('ROR0008|')";
+	//		}
+	//		if(nRet < 0 && bRet == FALSE)
+	//		{
+	//			strMsg = L"[ERR] ONLINE-REMOTE ERS - [ERR] ProcGEM_ToEQ('ROR0008|')";
+	//		}
+	//		GetLog()->Debug(strMsg.GetBuffer());
+	//	}
+	//}
 
 	CDialogEx::OnTimer(nIDEvent);
 }
@@ -1715,4 +1799,47 @@ void PrintDirs()
 }
 */
 
+//S10F3 H->E Terminal Display, Single (VTN)	/S10F4 H<-E Terminal Display, Single Acknowledge (VTA) 
+void CWLP_GEM_AgentDlg::OnTerminalMessageSingleEzgemctrl1(long lMsgId, LPCTSTR strMsg, short nCode)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	CString strPacketBody = L""; //VISION 전송용 Packet Body;
+	int nTotalPacketSize = 0;
+	CString	strSendPacket = L"";
 
+	strPacketBody = strMsg;
+	//strPacketBody += L"|";
+			
+	nTotalPacketSize = strPacketBody.GetLength() + 8;
+	strSendPacket.Format(L"TDS%04d|%s|",nTotalPacketSize,strPacketBody);
+
+	ProcGEM_ToEQ(strSendPacket);
+
+	m_GEM.AcceptTerminalMessage(lMsgId);
+}
+
+
+void CWLP_GEM_AgentDlg::OnTerminalMessageMultiEzgemctrl1(long lMsgId, short nCode, short nCount)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	//2016-06-01 Single과 동일하게 처리 TDS
+	CString strPacketBody = L""; //VISION 전송용 Packet Body;
+	int nTotalPacketSize = 0;
+	CString	strSendPacket = L"";
+
+	CString strMsg = L"";
+
+	for (int i=0;i<nCount;i++) {
+		strMsg += m_GEM.GetTerminalMessageMulti(lMsgId, i);
+		strMsg += L"\r\n";
+	}
+
+	strPacketBody = strMsg;
+			
+	nTotalPacketSize = strPacketBody.GetLength() + 8;
+	strSendPacket.Format(L"TDS%04d|%s|",nTotalPacketSize,strPacketBody);
+
+	ProcGEM_ToEQ(strSendPacket);
+
+	m_GEM.AcceptTerminalMessage(lMsgId); //2016-05-31 추가
+}
