@@ -122,6 +122,9 @@ public:
 	//Mode가 Online Local일 때 Event를 EAP로 동일하게 올려 주는 부분 개발 필요(EAP에서 명령 내리지 않고 동작하고, Event만 올리는 부분)
 	//flag - ezGEM driver OnlineRemote에서 구분처리
 	BOOL	m_bOnlineRemote; 
+//2016-06-07 Hot Fix
+	int		m_nHCS_PP_Status; //HCS처리 Flag
+	CString m_strHCS_PP_SELECT; //HCS 미처리 VISION전송용 packet 
 
 	//void	RemoveSV(int CEID);
 

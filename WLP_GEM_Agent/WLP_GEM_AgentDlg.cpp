@@ -50,11 +50,16 @@ CWLP_GEM_AgentDlg::CWLP_GEM_AgentDlg(CWnd* pParent /*=NULL*/)
 	, m_strALIDFilePath(L"")
 	, m_strIniFilePath(L"")
 	, m_strStartPortID(L"")
+	, m_strHCS_PP_SELECT(L"")
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	
 	m_bEqConnect = FALSE;
 
 	m_bOnlineRemote = FALSE;
+
+	m_nHCS_PP_Status = 0;
+
 }
 
 void CWLP_GEM_AgentDlg::DoDataExchange(CDataExchange* pDX)
@@ -1138,6 +1143,11 @@ int CWLP_GEM_AgentDlg::SendERS(CString strPacketBody)
 	long lCEID = _wtoi(strCEID);
 	int nRet = m_GEM.SendEventReport(lCEID);
 
+	if(strCEID == L"1500" && nRet >= 0) 
+	{
+		m_nHCS_PP_Status = 3;
+	}
+
 	return nRet;
 }
 
@@ -1246,11 +1256,10 @@ void CWLP_GEM_AgentDlg::OnSecsMsgInEzgemctrl1(short nStream, short nFunction, sh
 
 	AddLogGEM(str);
 
-	//2016-06-06 일단 막음 - control mode는 장비 수동설정으로 통일
-	//if((nStream == 1 && nFunction == 13) || (nStream == 1 && nFunction == 14) )//EAP 접속시
-	//{
-	//	SetTimer(IDD+1, 1000, NULL);
-	//}
+	if((nStream == 1 && nFunction == 13) || (nStream == 1 && nFunction == 14) )//EAP 접속시
+	{
+		SetTimer(IDD+1, 1000, NULL);
+	}
 }
 
 void CWLP_GEM_AgentDlg::OnSecsMsgOutEzgemctrl1(short nStream, short nFunction, short nWbit, long lSysByte)
@@ -1358,6 +1367,13 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 
 	if(wcscmp(strCommand,_T("PP-SELECT")) == 0 || wcscmp(strCommand,_T("START")) == 0 || wcscmp(strCommand,_T("UNLOAD")) == 0)
 	{
+		if(wcscmp(strCommand,_T("PP-SELECT")) == 0)
+		{
+			m_nHCS_PP_Status = 0;
+
+			SetTimer(IDD+100,2000,NULL);
+		}
+
 		strPacketBody.Format(L"%s|",strCommand);
 
 		for (int i = 0;i < nParamCount; i++) 
@@ -1410,7 +1426,19 @@ void CWLP_GEM_AgentDlg::OnRemoteCommandEzgemctrl1(long lMsgId, LPCTSTR strComman
 		nTotalPacketSize = strPacketBody.GetLength() + 8;
 		strSendPacket.Format(L"HCS%04d|%s",nTotalPacketSize,strPacketBody);
 
-		ProcGEM_ToEQ(strSendPacket);
+		if(wcscmp(strCommand,_T("PP-SELECT")) == 0)
+		{
+			m_strHCS_PP_SELECT = strSendPacket;
+			m_nHCS_PP_Status = 1;
+		}
+
+		BOOL bRet = ProcGEM_ToEQ(strSendPacket);
+
+		if(wcscmp(strCommand,_T("PP-SELECT")) == 0 && bRet == TRUE)
+		{
+			m_strHCS_PP_SELECT = strSendPacket;
+			m_nHCS_PP_Status = 2;
+		}
 
 		// REMOTE COMMAND 수락
 		short nCommack = 0x00; //OK..
@@ -1707,53 +1735,65 @@ void CWLP_GEM_AgentDlg::OnTimer(UINT_PTR nIDEvent)
 			GetLog()->Debug(strMsg.GetBuffer());
 		}
 	}
-	//else if(nIDEvent == IDD+2) //ONLINE-REMOTE
-	//{
-	//	//2016-03-16
-	//	//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
-	//	m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OR"); // 2016-05-31
+	else if(nIDEvent == IDD + 100) //HCS - PP-SELECT packet 재전송(TO VISION) Timer
+	{
+		if(m_nHCS_PP_Status == 3)
+		{
+			KillTimer(IDD + 100);
+			return;
+		}
+		else if(m_nHCS_PP_Status == 1 || m_nHCS_PP_Status == 2)
+		{
+			ProcGEM_ToEQ(m_strHCS_PP_SELECT);
+		}
+	}
+	else if(nIDEvent == IDD+2) //ONLINE-REMOTE
+	{
+		//2016-03-16
+		//m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"ONLINE-LOCAL"); //
+		m_GEM.SetCurrentStatusValue(SVID_CONTROL_STATE, L"OR"); // 2016-05-31
 
-	//	long lCEID =1003;
-	//	int nRet = m_GEM.SendEventReport(lCEID);
+		long lCEID =1003;
+		int nRet = m_GEM.SendEventReport(lCEID);
 
-	//	CString strPacket, strMsg;
-	//	strPacket = L"ROR0008|";
-	//
-	//	if(m_bEqConnect == FALSE)
-	//	{
-	//		return; //접속이후...
-	//	}
+		CString strPacket, strMsg;
+		strPacket = L"ROR0008|";
+	
+		if(m_bEqConnect == FALSE)
+		{
+			return; //접속이후...
+		}
 
-	//	BOOL bRet = ProcGEM_ToEQ(strPacket);
+		BOOL bRet = ProcGEM_ToEQ(strPacket);
 
-	//	/*if(bRet == TRUE)
-	//	{
-	//		m_bOnlineRemote = TRUE;
-	//	}*/
+		/*if(bRet == TRUE)
+		{
+			m_bOnlineRemote = TRUE;
+		}*/
 
-	//	if(nRet >= 0 && bRet == TRUE) //ON-LINE REMOTE
-	//	{
-	//		KillTimer(IDD+2);
-	//		strMsg = L"ONLINE-REMOTE ERS - ProcGEM_ToEQ('ROR0008|')";
-	//		GetLog()->Debug(strMsg.GetBuffer());
-	//	}
-	//	else
-	//	{
-	//		if(nRet < 0)
-	//		{
-	//			strMsg = L"[ERR] ONLINE-REMOTEL ERS";
-	//		}
-	//		else if(bRet == FALSE)
-	//		{
-	//			strMsg = L"[ERR] ProcGEM_ToEQ('ROR0008|')";
-	//		}
-	//		if(nRet < 0 && bRet == FALSE)
-	//		{
-	//			strMsg = L"[ERR] ONLINE-REMOTE ERS - [ERR] ProcGEM_ToEQ('ROR0008|')";
-	//		}
-	//		GetLog()->Debug(strMsg.GetBuffer());
-	//	}
-	//}
+		if(nRet >= 0 && bRet == TRUE) //ON-LINE REMOTE
+		{
+			KillTimer(IDD+2);
+			strMsg = L"ONLINE-REMOTE ERS - ProcGEM_ToEQ('ROR0008|')";
+			GetLog()->Debug(strMsg.GetBuffer());
+		}
+		else
+		{
+			if(nRet < 0)
+			{
+				strMsg = L"[ERR] ONLINE-REMOTEL ERS";
+			}
+			else if(bRet == FALSE)
+			{
+				strMsg = L"[ERR] ProcGEM_ToEQ('ROR0008|')";
+			}
+			if(nRet < 0 && bRet == FALSE)
+			{
+				strMsg = L"[ERR] ONLINE-REMOTE ERS - [ERR] ProcGEM_ToEQ('ROR0008|')";
+			}
+			GetLog()->Debug(strMsg.GetBuffer());
+		}
+	}
 
 	CDialogEx::OnTimer(nIDEvent);
 }
